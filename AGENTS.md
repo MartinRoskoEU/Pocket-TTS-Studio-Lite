@@ -76,11 +76,12 @@ Do not introduce custom voice containers or unnecessary conversions.
 
 ## Testing
 
-Tests must focus on actual application requirements.
-
-Verify critical functionality, error handling, model downloads, and voice profile exports.
-
-Avoid unnecessary test infrastructure.
+- Run only targeted tests relevant to the implemented changes.
+- Test directly affected functionality and relevant failure scenarios.
+- Do not run full regression tests after every change.
+- Perform broader regression testing before releases or after significant architectural changes.
+- Avoid unnecessary test frameworks, infrastructure, and excessive test coverage.
+- Report which tests were performed, their results, and any unverified behavior.
 
 ## Documentation
 
