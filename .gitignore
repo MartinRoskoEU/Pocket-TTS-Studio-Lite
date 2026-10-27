@@ -1,0 +1,63 @@
+# .NET build outputs
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+artifacts/
+publish/
+TestResults/
+packages/
+
+# Visual Studio and IDE files
+.vs/
+.idea/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Windows application packages
+AppPackages/
+BundleArtifacts/
+*.appx
+*.appxbundle
+*.appxupload
+*.msix
+*.msixbundle
+*.msixupload
+*.msi
+
+# Downloaded models and runtime data
+/models/
+/downloads/
+/cache/
+/data/
+/temp/
+
+# Model weights and voice profiles
+*.safetensors
+
+# Generated output
+/output/
+/exports/
+
+# Secrets and credentials
+.env
+.env.*
+!.env.example
+*.pfx
+*.p12
+*.pem
+
+# Logs and temporary files
+*.log
+*.tmp
+*.temp
+*.bak
+*.swp
+
+# Operating system files
+Thumbs.db
+Thumbs.db:encryptable
+Desktop.ini
+.DS_Store
