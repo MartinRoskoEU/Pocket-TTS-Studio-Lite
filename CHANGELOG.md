@@ -6,6 +6,8 @@ The changelog is maintained manually and updated for each release.
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-10-29
+
 ### Added
 
 - Prepare the first per-user x64 Inno Setup installer for 0.1.0, with self-contained
@@ -140,5 +142,3 @@ The changelog is maintained manually and updated for each release.
   launch commands, and third-party dependency licenses.
 - Added `LICENSE` as an unchanged copy of the existing `LICNESE` file; retained
   the original file.
-
-No public releases yet.
