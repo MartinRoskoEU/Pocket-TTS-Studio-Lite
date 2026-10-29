@@ -2,6 +2,7 @@
 [Bb]in/
 [Oo]bj/
 [Dd]ebug/
+# Includes the repository-root release/ installer output.
 [Rr]elease/
 artifacts/
 publish/
@@ -28,6 +29,7 @@ BundleArtifacts/
 *.msi
 
 # Downloaded models and runtime data
+/development/runtime/
 /models/
 /downloads/
 /cache/

@@ -1,0 +1,521 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Window
+    x:Class="PocketTTSStudioLite.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:PocketTTSStudioLite"
+    Title="Pocket TTS Studio lite">
+    <Window.SystemBackdrop>
+        <MicaBackdrop />
+    </Window.SystemBackdrop>
+    <Grid x:Name="ShellRoot">
+        <Grid.Resources>
+            <Style x:Key="NotificationPanelStyle" TargetType="Border">
+                <Setter Property="Padding" Value="20" />
+                <Setter Property="CornerRadius" Value="8" />
+                <Setter Property="HorizontalAlignment" Value="Stretch" />
+                <Setter Property="Background" Value="{ThemeResource CardBackgroundFillColorDefaultBrush}" />
+                <Setter Property="BorderBrush" Value="{ThemeResource CardStrokeColorDefaultBrush}" />
+                <Setter Property="BorderThickness" Value="1" />
+            </Style>
+            <Style x:Key="NotificationTitleStyle" TargetType="TextBlock">
+                <Setter Property="Foreground" Value="{ThemeResource TextFillColorPrimaryBrush}" />
+            </Style>
+            <Style x:Key="NotificationSuccessTitleStyle" TargetType="TextBlock">
+                <Setter Property="Foreground" Value="{ThemeResource SystemFillColorSuccessBrush}" />
+            </Style>
+            <Style x:Key="NotificationErrorTitleStyle" TargetType="TextBlock">
+                <Setter Property="Foreground" Value="{ThemeResource SystemFillColorCriticalBrush}" />
+            </Style>
+            <Style x:Key="NotificationWarningTitleStyle" TargetType="TextBlock">
+                <Setter Property="Foreground" Value="{ThemeResource SystemFillColorCautionBrush}" />
+            </Style>
+            <Style x:Key="NotificationInformationTitleStyle" TargetType="TextBlock">
+                <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
+            </Style>
+            <Style x:Key="NotificationDismissButtonStyle" TargetType="Button">
+                <Setter Property="Width" Value="28" />
+                <Setter Property="Height" Value="28" />
+                <Setter Property="MinWidth" Value="0" />
+                <Setter Property="MinHeight" Value="0" />
+                <Setter Property="Padding" Value="0" />
+                <Setter Property="Margin" Value="16,0,0,0" />
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="HorizontalAlignment" Value="Right" />
+                <Setter Property="VerticalAlignment" Value="Center" />
+                <Setter Property="UseSystemFocusVisuals" Value="True" />
+            </Style>
+            <local:LocalPathDisplayConverter x:Key="LocalPathDisplay" />
+            <local:ModelInstallationGlyphConverter x:Key="ModelInstallationGlyph" />
+        </Grid.Resources>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="40" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <Grid x:Name="AppTitleBar" Height="40" Background="Transparent">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition x:Name="TitleBarRightInset" Width="138" />
+            </Grid.ColumnDefinitions>
+            <Grid Margin="16,0,0,0" ColumnSpacing="8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="16" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Image Width="16" Height="16" Source="ms-appx:///Assets/Square44x44Logo.targetsize-24_altform-unplated.png" />
+                <TextBlock x:Name="AppTitle" Grid.Column="1" Text="Pocket TTS Studio lite" FontFamily="Segoe UI Variable"
+                           FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+            </Grid>
+        </Grid>
+        <NavigationView x:Name="ShellNavigation" Grid.Row="1" PaneDisplayMode="Left" IsPaneOpen="True" IsPaneToggleButtonVisible="False" OpenPaneLength="208" CompactPaneLength="48"
+                        FontFamily="Segoe UI Variable" FontSize="14" IsTitleBarAutoPaddingEnabled="False"
+                        IsBackButtonVisible="Collapsed" IsSettingsVisible="False" AlwaysShowHeader="False">
+            <NavigationView.Resources>
+                <ResourceDictionary>
+                    <ResourceDictionary.ThemeDictionaries>
+                        <ResourceDictionary x:Key="Default">
+                            <SolidColorBrush x:Key="NavigationViewContentBackground" Color="Transparent" />
+                        </ResourceDictionary>
+                        <ResourceDictionary x:Key="Light">
+                            <SolidColorBrush x:Key="NavigationViewContentBackground" Color="Transparent" />
+                        </ResourceDictionary>
+                        <ResourceDictionary x:Key="HighContrast">
+                            <SolidColorBrush x:Key="NavigationViewContentBackground" Color="{ThemeResource SystemColorWindowColor}" />
+                        </ResourceDictionary>
+                    </ResourceDictionary.ThemeDictionaries>
+                    <Style TargetType="NavigationViewItem">
+                        <Setter Property="Height" Value="40" />
+                        <Setter Property="Margin" Value="4,0,4,4" />
+                    </Style>
+                </ResourceDictionary>
+            </NavigationView.Resources>
+            <NavigationView.MenuItems>
+                <NavigationViewItem x:Name="VoiceExportNavigationItem" Content="Voice Cloning" Icon="Microphone" />
+                <NavigationViewItem x:Name="ModelsNavigationItem" Content="Settings" Icon="Setting" />
+            </NavigationView.MenuItems>
+            <Grid>
+                <ScrollViewer x:Name="VoiceExportPageHost" Padding="28" Visibility="Collapsed"
+                              HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" HorizontalContentAlignment="Stretch">
+                    <StackPanel Spacing="20">
+                        <StackPanel x:Name="VoiceExportPanel" Spacing="20" Visibility="Collapsed">
+                            <StackPanel Spacing="8">
+                                <TextBlock Text="Voice Cloning" FontSize="28" FontWeight="SemiBold" />
+                                <TextBlock Text="Clone a voice from reference audio, preview generated speech, and export a reusable voice profile." TextWrapping="Wrap"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            </StackPanel>
+                            <Border x:Name="VoiceExportNotificationPanel" Style="{StaticResource NotificationPanelStyle}" Visibility="Collapsed">
+                                <Grid>
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                                    <Grid ColumnSpacing="10" MinHeight="28">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                        <FontIcon x:Name="VoiceExportNotificationIcon" FontSize="20"
+                                                  Foreground="{Binding Foreground, ElementName=VoiceExportNotificationTitleText}"
+                                                  IsHitTestVisible="False" AutomationProperties.AccessibilityView="Raw" />
+                                        <TextBlock x:Name="VoiceExportNotificationTitleText" Grid.Column="1" FontSize="17" FontWeight="SemiBold"
+                                                   TextWrapping="Wrap" VerticalAlignment="Center" Style="{StaticResource NotificationInformationTitleStyle}" />
+                                    </Grid>
+                                    <TextBlock x:Name="VoiceExportNotificationMessageText" Grid.Row="1" Margin="0,4,0,0"
+                                               FontSize="13" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
+                                    <Button Grid.Column="1" Grid.RowSpan="2" Style="{StaticResource NotificationDismissButtonStyle}" VerticalAlignment="Top"
+                                            Click="DismissVoiceExportNotification_Click" ToolTipService.ToolTip="Dismiss notification"
+                                            AutomationProperties.Name="Dismiss Voice Cloning notification">
+                                        <FontIcon Glyph="&#xE711;" FontSize="14" />
+                                    </Button>
+                                </Grid>
+                            </Border>
+                            <TextBox x:Name="ReferenceAudioPathText" IsReadOnly="True" Visibility="Collapsed" />
+                            <TextBox x:Name="ExportDestinationText" IsReadOnly="True" Visibility="Collapsed" />
+
+                            <StackPanel x:Name="VoiceExportColumns" Spacing="20" HorizontalAlignment="Stretch">
+                                <Border x:Name="ReferenceAudioCard" Padding="20" CornerRadius="8" VerticalAlignment="Top"
+                                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                                    <StackPanel Spacing="16">
+                                        <TextBlock Text="Reference audio" FontSize="16" FontWeight="SemiBold" />
+                                        <Button x:Name="SelectReferenceButton" MinHeight="112" CornerRadius="8" BorderThickness="1" Padding="12" AllowDrop="True"
+                                                DragOver="ReferenceAudio_DragOver" Drop="ReferenceAudio_Drop"
+                                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Click="SelectReference_Click"
+                                                AutomationProperties.Name="Browse reference audio"
+                                                ToolTipService.ToolTip="Browse or drop one local audio file with a supported extension. Windows decoding determines audio compatibility.">
+                                            <StackPanel Spacing="4" HorizontalAlignment="Stretch">
+                                                <SymbolIcon Symbol="Upload" Width="20" Height="20" />
+                                                <TextBlock Text="Drop reference audio here" TextWrapping="Wrap" TextAlignment="Center" />
+                                                <TextBlock Text="or browse files" FontSize="12" TextAlignment="Center"
+                                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                                <TextBlock x:Name="ReferenceFormatsText" Text="Checking Windows audio formats…" FontSize="10"
+                                                           TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" TextAlignment="Center"
+                                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                            </StackPanel>
+                                        </Button>
+                                        <TextBlock Text="{Binding ElementName=ReferenceAudioPathText, Path=Text, Converter={StaticResource LocalPathDisplay}, ConverterParameter=ReferenceName}"
+                                                   Visibility="{Binding ElementName=ReferenceAudioPathText, Path=Text, Converter={StaticResource LocalPathDisplay}, ConverterParameter=Visibility}"
+                                                   ToolTipService.ToolTip="{Binding ElementName=ReferenceAudioPathText, Path=Text}" TextWrapping="Wrap"
+                                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                        <local:AudioPlayerControl x:Name="ReferencePlayer" />
+                                    </StackPanel>
+                                </Border>
+                                <Border x:Name="VoiceProfileCard" Padding="20" CornerRadius="8" VerticalAlignment="Top"
+                                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                                    <StackPanel Spacing="16">
+                                        <TextBlock Text="Generate preview" FontSize="16" FontWeight="SemiBold" />
+                                        <StackPanel Spacing="8">
+                                            <ComboBox x:Name="ExportModelComboBox" Header="Model" PlaceholderText="Select an installed model"
+                                                      IsEnabled="False" HorizontalAlignment="Stretch" DisplayMemberPath="Name" SelectionChanged="ExportModel_SelectionChanged"
+                                                      ToolTipService.ToolTip="Active model verified for voice export." />
+                                        </StackPanel>
+                                        <TextBox x:Name="CloningTextInput" Header="Preview text" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="160" MaxHeight="320"
+                                                 Text="Adventurer, listen carefully: at dawn, three scouts vanished near the shattered watchtower. Search the ruins, retrieve the silver key, and protect the wounded prisoner before the seventh bell. But tell me—did you hear a strange whisper beneath the storm, or was it only the wind?"
+                                                 AutomationProperties.Name="Preview text" TextChanged="CloningText_Changed" />
+                                        <Button x:Name="GenerateButton" Content="Generate" Click="Generate_Click" IsEnabled="False" Style="{StaticResource AccentButtonStyle}" HorizontalAlignment="Stretch" />
+                                        <Grid x:Name="GenerationProgressPanel" ColumnSpacing="8" Visibility="Collapsed">
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                            <ProgressRing Width="24" Height="24" IsActive="True" />
+                                            <TextBlock x:Name="GenerationProgressText" Grid.Column="1" TextWrapping="Wrap" VerticalAlignment="Center" />
+                                            <Button Grid.Column="2" Content="Cancel generation" Click="CancelGeneration_Click" />
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+                                <Border x:Name="VoicePreviewCard" Padding="20" CornerRadius="8" VerticalAlignment="Top" Visibility="Collapsed"
+                                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                                    <StackPanel Spacing="16">
+                                        <TextBlock Text="Voice preview" FontSize="16" FontWeight="SemiBold" />
+                                        <local:AudioPlayerControl x:Name="VoicePreviewPlayer" AudioLabel="voice preview" />
+                                    </StackPanel>
+                                </Border>
+                                <Border x:Name="ExportVoiceProfileCard" Padding="20" CornerRadius="8" VerticalAlignment="Top"
+                                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                                    <StackPanel Spacing="16">
+                                        <TextBlock Text="Export voice profile" FontSize="16" FontWeight="SemiBold" />
+                                        <StackPanel Spacing="8">
+                                            <TextBlock Text="Export folder" />
+                                            <Grid ColumnSpacing="8">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBox IsReadOnly="True" MinWidth="0" PlaceholderText="Choose an export folder"
+                                                         Text="{Binding ElementName=ExportDestinationText, Path=Text}"
+                                                         ToolTipService.ToolTip="{Binding ElementName=ExportDestinationText, Path=Text}"
+                                                         AutomationProperties.Name="Export folder" />
+                                                <Button x:Name="SelectDestinationButton" Grid.Column="1" Width="36" Height="36" Padding="0"
+                                                        Click="SelectDestination_Click" AutomationProperties.Name="Choose export folder"
+                                                        ToolTipService.ToolTip="Choose export folder.">
+                                                    <FontIcon Glyph="&#xE8B7;" FontSize="16" />
+                                                </Button>
+                                            </Grid>
+                                        </StackPanel>
+                                        <Button x:Name="ExportVoiceButton" Content="Export" Click="ExportVoice_Click" IsEnabled="False"
+                                                Style="{StaticResource AccentButtonStyle}" HorizontalAlignment="Stretch" />
+                                        <StackPanel x:Name="ExportOperationStatusPanel" Spacing="8" Visibility="Collapsed">
+                                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                                <Button x:Name="CancelExportButton" Content="Cancel export" Click="CancelExport_Click" Visibility="Collapsed" />
+                                                <ProgressRing x:Name="ExportProgress" Width="24" Height="24" IsActive="False" Visibility="Collapsed" />
+                                            </StackPanel>
+                                            <TextBlock x:Name="ExportStatusText" Visibility="Collapsed"
+                                                       FontSize="12" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </StackPanel>
+
+
+                    </StackPanel>
+                </ScrollViewer>
+
+                <Grid x:Name="ModelSetupPanel">
+                    <Grid.Resources>
+                        <local:ModelInstallationStatusConverter x:Key="ModelInstallationStatus" />
+                        <Style x:Key="RuntimeNeutralTextStyle" TargetType="TextBlock">
+                            <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
+                        </Style>
+                        <Style x:Key="RuntimeSuccessTextStyle" TargetType="TextBlock">
+                            <Setter Property="Foreground" Value="{ThemeResource SystemFillColorSuccessBrush}" />
+                        </Style>
+                        <Style x:Key="RuntimeAccentTextStyle" TargetType="TextBlock">
+                            <Setter Property="Foreground" Value="{ThemeResource AccentTextFillColorPrimaryBrush}" />
+                        </Style>
+                        <Style x:Key="RuntimeWarningTextStyle" TargetType="TextBlock">
+                            <Setter Property="Foreground" Value="{ThemeResource SystemFillColorCautionBrush}" />
+                        </Style>
+                        <Style x:Key="RuntimeIndicatorStyle" TargetType="local:RuntimeStatusIndicator">
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="local:RuntimeStatusIndicator">
+                                        <Ellipse Fill="{TemplateBinding Foreground}" />
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                        <Style x:Key="RuntimeNeutralIndicatorStyle" TargetType="local:RuntimeStatusIndicator" BasedOn="{StaticResource RuntimeIndicatorStyle}">
+                            <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
+                        </Style>
+                        <Style x:Key="RuntimeSuccessIndicatorStyle" TargetType="local:RuntimeStatusIndicator" BasedOn="{StaticResource RuntimeIndicatorStyle}">
+                            <Setter Property="Foreground" Value="{ThemeResource SystemFillColorSuccessBrush}" />
+                        </Style>
+                        <Style x:Key="RuntimeErrorIndicatorStyle" TargetType="local:RuntimeStatusIndicator" BasedOn="{StaticResource RuntimeIndicatorStyle}">
+                            <Setter Property="Foreground" Value="{ThemeResource SystemFillColorCriticalBrush}" />
+                        </Style>
+                    </Grid.Resources>
+                    <ScrollViewer Padding="28" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto"
+                                  HorizontalContentAlignment="Stretch">
+                        <StackPanel Spacing="20">
+                            <StackPanel Spacing="8">
+                                <TextBlock Text="Settings" FontSize="28" FontWeight="SemiBold" />
+                                <TextBlock Text="Manage the Pocket TTS runtime and voice models." FontSize="13"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                            </StackPanel>
+
+                            <Border Padding="20" CornerRadius="8" HorizontalAlignment="Stretch"
+                                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <Grid x:Name="RuntimeRow" RowSpacing="4" ColumnSpacing="16" SizeChanged="RuntimeRow_SizeChanged">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
+                                        <TextBlock Text="Pocket TTS Runtime" FontSize="17" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                        <TextBlock x:Name="RuntimeVersionText" Grid.Row="1" Text="Checking installed release&#x2026;" FontSize="13"
+                                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                                        <local:RuntimeStatusIndicator x:Name="RuntimeReadinessIndicator" Grid.Column="1" Grid.RowSpan="2" Width="12" Height="12" Margin="0,0,12,0"
+                                                                      Style="{StaticResource RuntimeNeutralIndicatorStyle}"
+                                                                      HorizontalAlignment="Right" VerticalAlignment="Center" IsTabStop="False"
+                                                                      ToolTipService.ToolTip="Runtime status unknown"
+                                                                      AutomationProperties.Name="Runtime status unknown"
+                                                                      AutomationProperties.AccessibilityView="Content"
+                                                                      AutomationProperties.LiveSetting="Polite" />
+                                    </Grid>
+                                    <Border Grid.Row="1" Height="1" Margin="0,16,0,16"
+                                            Background="{ThemeResource DividerStrokeColorDefaultBrush}" />
+                                    <Grid x:Name="RuntimeUpdateRow" Grid.Row="2" ColumnSpacing="20">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
+                                        <Grid x:Name="RuntimeUpdateStatusPanel" ColumnSpacing="10" VerticalAlignment="Center">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <ProgressRing x:Name="RuntimeUpdateProgress" Width="16" Height="16" IsActive="False" Visibility="Collapsed" />
+                                            <FontIcon x:Name="RuntimeUpdateIcon" FontSize="18" Visibility="Collapsed"
+                                                      Foreground="{Binding Foreground, ElementName=RuntimeUpdateStatusText}" IsHitTestVisible="False" />
+                                            <TextBlock x:Name="RuntimeUpdateStatusText" Grid.Column="1" Text="Checking for updates..." FontSize="16" FontWeight="SemiBold"
+                                                       Style="{StaticResource RuntimeNeutralTextStyle}" TextWrapping="Wrap" VerticalAlignment="Center"
+                                                       AutomationProperties.Name="Runtime update status" AutomationProperties.LiveSetting="Polite" />
+                                        </Grid>
+                                        <StackPanel x:Name="RuntimeUpdateActions" Grid.Column="1" Orientation="Horizontal" Spacing="8"
+                                                    HorizontalAlignment="Right" VerticalAlignment="Center">
+                                            <Button x:Name="RuntimeUpdateButton" Content="Check for updates" IsEnabled="False"
+                                                    Height="36" Padding="16,0" FontSize="14" Click="RuntimeUpdateButton_Click" />
+                                            <Button x:Name="RuntimeCancelUpdateButton" Content="Cancel" Visibility="Collapsed"
+                                                    Height="36" Padding="16,0" FontSize="14" Click="RuntimeCancelUpdateButton_Click" />
+                                        </StackPanel>
+                                    </Grid>
+                                    <ProgressBar x:Name="RuntimeInstallProgressBar" Grid.Row="3" Margin="0,12,0,0" Minimum="0" Maximum="100"
+                                                 Visibility="Collapsed" IsIndeterminate="True" AutomationProperties.Name="Runtime installation progress" />
+                                    <TextBlock x:Name="ModelSetupStatusText" Grid.Row="4" Margin="0,12,0,0" Text="Checking runtime and installed models&#x2026;" FontSize="12"
+                                               TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" AutomationProperties.LiveSetting="Polite" />
+                                </Grid>
+                            </Border>
+
+                            <Border x:Name="ModelInstallationPanel" Style="{StaticResource NotificationPanelStyle}" Visibility="Collapsed">
+                                <Border.Resources>
+                                    <Style x:Key="InstallationTitleStyle" TargetType="TextBlock" BasedOn="{StaticResource NotificationTitleStyle}" />
+                                    <Style x:Key="InstallationSuccessTitleStyle" TargetType="TextBlock" BasedOn="{StaticResource NotificationSuccessTitleStyle}" />
+                                    <Style x:Key="InstallationErrorTitleStyle" TargetType="TextBlock" BasedOn="{StaticResource NotificationErrorTitleStyle}" />
+                                    <Style x:Key="InstallationNeutralTitleStyle" TargetType="TextBlock" BasedOn="{StaticResource NotificationInformationTitleStyle}" />
+                                </Border.Resources>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <Grid x:Name="ModelInstallationHeading" VerticalAlignment="Center">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <FontIcon x:Name="ModelInstallationResultIcon" FontSize="20" Visibility="Collapsed"
+                                                  Foreground="{Binding Foreground, ElementName=ModelInstallationTitleText}"
+                                                  IsHitTestVisible="False" AutomationProperties.AccessibilityView="Raw" />
+                                        <TextBlock x:Name="ModelInstallationTitleText" Grid.Column="1" Text="Installing model" FontSize="17" FontWeight="SemiBold"
+                                                   Style="{StaticResource InstallationTitleStyle}" TextWrapping="Wrap" VerticalAlignment="Center"
+                                                   AutomationProperties.LiveSetting="Polite" />
+                                    </Grid>
+                                    <Button x:Name="DismissModelInstallationButton" Grid.Column="1" Grid.RowSpan="2" Style="{StaticResource NotificationDismissButtonStyle}"
+                                            Visibility="Collapsed" Click="DismissModelInstallation_Click"
+                                            ToolTipService.ToolTip="Dismiss installation notification" AutomationProperties.Name="Dismiss installation notification">
+                                        <FontIcon Glyph="&#xE711;" FontSize="14" />
+                                    </Button>
+                                    <StackPanel Grid.Row="1" Margin="0,4,0,0" Spacing="8">
+                                        <TextBlock x:Name="ModelInstallationModelText" FontSize="13" TextWrapping="Wrap"
+                                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                        <TextBlock x:Name="ModelInstallationStatusText" TextWrapping="Wrap" FontSize="13" AutomationProperties.LiveSetting="Polite" />
+                                    </StackPanel>
+                                    <ProgressBar x:Name="ModelInstallationProgress" Grid.Row="2" Grid.ColumnSpan="2" Margin="0,12,0,0" Minimum="0" Maximum="100"
+                                                 Visibility="Collapsed" AutomationProperties.Name="Model installation progress" />
+                                    <Button x:Name="CancelModelInstallationButton" Grid.Row="3" Grid.ColumnSpan="2" Margin="0,12,0,0" Height="36" Padding="16,0" FontSize="14"
+                                            Content="Cancel installation" HorizontalAlignment="Right" Click="CancelModelInstallation_Click" Visibility="Collapsed" />
+                                </Grid>
+                            </Border>
+
+                            <Border x:Name="ModelsCard" Padding="20" CornerRadius="8" HorizontalAlignment="Stretch"
+                                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                                <Border.Resources>
+                                    <ResourceDictionary>
+                                        <ResourceDictionary.ThemeDictionaries>
+                                            <ResourceDictionary x:Key="Default">
+                                                <SolidColorBrush x:Key="ModelIncompatibleForegroundBrush" Color="#FFB366" />
+                                            </ResourceDictionary>
+                                            <ResourceDictionary x:Key="Light">
+                                                <SolidColorBrush x:Key="ModelIncompatibleForegroundBrush" Color="#9D4D00" />
+                                            </ResourceDictionary>
+                                            <ResourceDictionary x:Key="HighContrast">
+                                                <SolidColorBrush x:Key="ModelIncompatibleForegroundBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
+                                            </ResourceDictionary>
+                                        </ResourceDictionary.ThemeDictionaries>
+                                        <Style x:Key="ModelInstalledStatusStyle" TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="{ThemeResource SystemFillColorSuccessBrush}" />
+                                        </Style>
+                                        <Style x:Key="ModelNotInstalledStatusStyle" TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
+                                        </Style>
+                                        <Style x:Key="ModelUnverifiedStatusStyle" TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="{ThemeResource SystemFillColorCautionBrush}" />
+                                        </Style>
+                                        <Style x:Key="ModelIncompatibleStatusStyle" TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="{ThemeResource ModelIncompatibleForegroundBrush}" />
+                                        </Style>
+                                        <local:ModelInstallationStyleConverter x:Key="ModelStatusStyle"
+                                            Installed="{StaticResource ModelInstalledStatusStyle}"
+                                            NotInstalled="{StaticResource ModelNotInstalledStatusStyle}"
+                                            Unverified="{StaticResource ModelUnverifiedStatusStyle}"
+                                            Incompatible="{StaticResource ModelIncompatibleStatusStyle}" />
+                                        <local:ModelManagementActionConverter x:Key="ModelManagementAction" />
+                                        <local:ModelUpdateVisibilityConverter x:Key="ModelUpdateVisibility" />
+                                    </ResourceDictionary>
+                                </Border.Resources>
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <Grid x:Name="AvailableModelsHeader" ColumnSpacing="16" SizeChanged="AvailableModelsPanel_SizeChanged">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
+                                        <Grid x:Name="ModelsHeaderText" RowSpacing="4">
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                            </Grid.RowDefinitions>
+                                            <TextBlock Text="Models" FontSize="17" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                            <TextBlock Grid.Row="1" Text="Manage installed and supported voice models." FontSize="13" TextWrapping="Wrap"
+                                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                            <TextBlock x:Name="ModelUpdatesStatusText" Grid.Row="2" FontSize="12" TextWrapping="Wrap" Visibility="Collapsed"
+                                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" AutomationProperties.LiveSetting="Polite" />
+                                        </Grid>
+                                        <Button x:Name="CheckModelsButton" Grid.Column="1" Content="Check for updates" Height="36" Padding="16,0" FontSize="14"
+                                                ToolTipService.ToolTip="Refresh local models and anonymously compare registered installed files with Hugging Face main."
+                                                HorizontalAlignment="Right" VerticalAlignment="Center" Click="CheckModels_Click" />
+                                    </Grid>
+                                    <ContentControl x:Name="ModelListHost" Grid.Row="1" Margin="0,16,0,0" HorizontalContentAlignment="Stretch" Visibility="Collapsed">
+                                        <ItemsRepeater x:Name="ModelList" Visibility="Collapsed">
+                                            <ItemsRepeater.Layout>
+                                                <StackLayout Spacing="0" />
+                                            </ItemsRepeater.Layout>
+                                            <ItemsRepeater.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Border MinHeight="64" Padding="0,12" BorderThickness="0,0,0,1"
+                                                            BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}">
+                                                        <Grid ColumnSpacing="16" VerticalAlignment="Center" SizeChanged="ModelRow_SizeChanged">
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="*" />
+                                                                <ColumnDefinition Width="Auto" />
+                                                                <ColumnDefinition Width="Auto" />
+                                                            </Grid.ColumnDefinitions>
+                                                            <Grid.RowDefinitions>
+                                                                <RowDefinition Height="Auto" />
+                                                                <RowDefinition Height="Auto" />
+                                                            </Grid.RowDefinitions>
+                                                            <TextBlock x:Name="ModelIdentifierText" Text="{Binding Name}" FontSize="14" TextWrapping="Wrap"
+                                                                       VerticalAlignment="Center" ToolTipService.ToolTip="{Binding Name}" />
+                                                            <Grid x:Name="ModelRowStatus" Grid.Column="1" ColumnSpacing="8" VerticalAlignment="Center"
+                                                                  ToolTipService.ToolTip="{Binding Detail}">
+                                                                <Grid.RowDefinitions>
+                                                                    <RowDefinition Height="Auto" />
+                                                                    <RowDefinition Height="Auto" />
+                                                                </Grid.RowDefinitions>
+                                                                <Grid.ColumnDefinitions>
+                                                                    <ColumnDefinition Width="Auto" />
+                                                                    <ColumnDefinition Width="Auto" />
+                                                                </Grid.ColumnDefinitions>
+                                                                <FontIcon Glyph="{Binding State, Converter={StaticResource ModelInstallationGlyph}}" FontSize="14"
+                                                                          Foreground="{Binding Foreground, ElementName=ModelRowStatusText}" />
+                                                                <TextBlock x:Name="ModelRowStatusText" Grid.Column="1" FontSize="13" VerticalAlignment="Center"
+                                                                           Text="{Binding State, Converter={StaticResource ModelInstallationStatus}}"
+                                                                           Style="{Binding State, Converter={StaticResource ModelStatusStyle}}" />
+                                                                <TextBlock Grid.Row="1" Grid.ColumnSpan="2" Margin="0,4,0,0" FontSize="12" MaxWidth="180"
+                                                                           Text="{Binding UpdateStatusText}" TextWrapping="Wrap" HorizontalAlignment="Left"
+                                                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                                           Visibility="{Binding UpdateStatusText, Converter={StaticResource ModelUpdateVisibility}}"
+                                                                           ToolTipService.ToolTip="{Binding UpdateStatusDetail}" AutomationProperties.LiveSetting="Polite" />
+                                                            </Grid>
+                                                            <Button x:Name="ModelRowAction" Grid.Column="2" MinWidth="88" Height="32" Padding="12,0" FontSize="13"
+                                                                    HorizontalAlignment="Right" VerticalAlignment="Center" IsEnabled="{Binding CanManage}" Click="ManageModel_Click"
+                                                                    Content="{Binding Converter={StaticResource ModelManagementAction}}"
+                                                                    Visibility="{Binding Converter={StaticResource ModelManagementAction}, ConverterParameter=Visibility}"
+                                                                    ToolTipService.ToolTip="{Binding InstallationHint}" />
+                                                        </Grid>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsRepeater.ItemTemplate>
+                                        </ItemsRepeater>
+                                    </ContentControl>
+                                    <TextBlock x:Name="ModelListEmptyText" Grid.Row="2" Margin="0,16,0,0" Text="Refreshing models..." FontSize="14" TextWrapping="Wrap"
+                                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                </Grid>
+                            </Border>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
+            </Grid>
+        </NavigationView>
+    </Grid>
+</Window>

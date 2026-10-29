@@ -1,0 +1,22 @@
+<Project>
+  <!-- Keep source manifests as templates; stamp only intermediate copies. -->
+  <Target Name="StampApplicationVersion" BeforeTargets="PrepareForBuild;_ValidatePresenceOfAppxManifestItems">
+    <PropertyGroup>
+      <_VersionedManifestDirectory>$(IntermediateOutputPath)versioned\</_VersionedManifestDirectory>
+      <ApplicationManifest>$(_VersionedManifestDirectory)app.manifest</ApplicationManifest>
+    </PropertyGroup>
+    <MakeDir Directories="$(_VersionedManifestDirectory)" />
+    <Copy SourceFiles="$(MSBuildProjectDirectory)\app.manifest" DestinationFiles="$(ApplicationManifest)" />
+    <XmlPoke XmlInputPath="$(ApplicationManifest)" Query="/*[local-name()='assembly']/*[local-name()='assemblyIdentity']/@version" Value="$(AssemblyVersion)" />
+    <ItemGroup>
+      <Manifest Remove="@(Manifest)" />
+      <Manifest Include="$(ApplicationManifest)" />
+    </ItemGroup>
+    <Copy Condition="'$(WindowsPackageType)' != 'None'" SourceFiles="$(MSBuildProjectDirectory)\Package.appxmanifest" DestinationFiles="$(_VersionedManifestDirectory)Package.appxmanifest" />
+    <XmlPoke Condition="'$(WindowsPackageType)' != 'None'" XmlInputPath="$(_VersionedManifestDirectory)Package.appxmanifest" Query="/*[local-name()='Package']/*[local-name()='Identity']/@Version" Value="$(AppxPackageVersion)" />
+    <ItemGroup Condition="'$(WindowsPackageType)' != 'None'">
+      <AppxManifest Remove="@(AppxManifest)" />
+      <AppxManifest Include="$(_VersionedManifestDirectory)Package.appxmanifest" />
+    </ItemGroup>
+  </Target>
+</Project>

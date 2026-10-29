@@ -1,0 +1,37 @@
+<UserControl x:Class="PocketTTSStudioLite.AudioPlayerControl"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Visibility="Collapsed">
+    <StackPanel Spacing="8">
+        <Border x:Name="ReferenceWaveformInput" Height="120" CornerRadius="8" BorderThickness="1" Padding="12"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                Background="{ThemeResource ControlFillColorSecondaryBrush}"
+                PointerPressed="ReferenceWaveform_PointerPressed" PointerMoved="ReferenceWaveform_PointerMoved"
+                PointerReleased="ReferenceWaveform_PointerReleased" PointerCanceled="ReferenceWaveform_PointerCanceled"
+                PointerCaptureLost="ReferenceWaveform_PointerCaptureLost" ManipulationMode="None"
+                AutomationProperties.Name="Reference audio waveform"
+                ToolTipService.ToolTip="Click or drag to seek reference audio">
+            <Grid>
+                <Canvas x:Name="ReferenceWaveformSurface" SizeChanged="ReferenceWaveform_SizeChanged" IsHitTestVisible="False">
+                    <Path x:Name="ReferenceWaveformPath" Stroke="{ThemeResource TextFillColorSecondaryBrush}" StrokeThickness="1" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                    <Path x:Name="ReferencePlayedWaveform" Stroke="{ThemeResource AccentTextFillColorPrimaryBrush}" StrokeThickness="1" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                    <Line x:Name="ReferencePlayhead" Visibility="Collapsed" Stroke="{ThemeResource AccentTextFillColorPrimaryBrush}" StrokeThickness="1" />
+                </Canvas>
+            </Grid>
+        </Border>
+        <Grid ColumnSpacing="12">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+            <Button x:Name="ReferencePlayButton" Width="36" Height="36" Padding="0" IsEnabled="False"
+                    VerticalAlignment="Center" Click="ReferencePlayPause_Click" AutomationProperties.Name="Play reference audio"
+                    ToolTipService.ToolTip="Play reference audio">
+                <SymbolIcon x:Name="ReferencePlayIcon" Symbol="Play" />
+            </Button>
+            <Grid Grid.Column="1" ColumnSpacing="8" VerticalAlignment="Center">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                <TextBlock x:Name="ReferenceCurrentTime" Text="--:--" FontSize="12" TextTrimming="CharacterEllipsis"
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" AutomationProperties.Name="Current playback time" />
+                <TextBlock x:Name="ReferenceTotalTime" Grid.Column="1" Text="--:--" FontSize="12"
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" AutomationProperties.Name="Total duration" />
+            </Grid>
+        </Grid>
+    </StackPanel>
+</UserControl>

@@ -1,0 +1,12 @@
+<Project>
+  <PropertyGroup>
+    <!-- The single release-version source for application, metadata, tests, and installer builds. -->
+    <Version>0.1.0</Version>
+    <AssemblyVersion>$(Version).0</AssemblyVersion>
+    <FileVersion>$(Version).0</FileVersion>
+    <InformationalVersion>$(Version)</InformationalVersion>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+    <AppxPackageVersion>$(Version).0</AppxPackageVersion>
+    <ApplicationVersion>$(Version).0</ApplicationVersion>
+  </PropertyGroup>
+</Project>

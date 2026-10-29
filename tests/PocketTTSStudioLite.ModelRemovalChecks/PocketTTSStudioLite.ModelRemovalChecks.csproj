@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\..\PocketTTSStudioLite\Services\ApplicationInfo.cs" Link="Services\ApplicationInfo.cs" />
+    <Compile Include="..\..\PocketTTSStudioLite\Services\PocketTtsModelStore.cs;..\..\PocketTTSStudioLite\Services\PocketTtsModelInventoryEntry.cs;..\..\PocketTTSStudioLite\Services\PocketTtsModelInventoryService.cs;..\..\PocketTTSStudioLite\Services\PocketTtsInstalledModel.cs;..\..\PocketTTSStudioLite\Services\PocketTtsModelRemovalService.cs;..\..\PocketTTSStudioLite\Services\PocketTtsNativeOperation.cs;..\..\PocketTTSStudioLite\Services\PocketTtsModelUpdateCoordinator.cs;..\..\PocketTTSStudioLite\Services\PocketTtsModelUpdateService.cs" Link="Services\%(Filename)%(Extension)" />
+  </ItemGroup>
+</Project>

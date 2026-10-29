@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "PocketTTSStudioLite (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "PocketTTSStudioLite (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}
