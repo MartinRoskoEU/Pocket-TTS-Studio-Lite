@@ -6,6 +6,11 @@ The changelog is maintained manually and updated for each release.
 
 ## [Unreleased]
 
+### Fixed
+
+- Align the window title with Out Loud using a 16-pixel left margin, removing the
+  extra image column and gap while preserving title styling and caption behavior.
+
 ## [0.1.0] - 2026-10-29
 
 ### Added

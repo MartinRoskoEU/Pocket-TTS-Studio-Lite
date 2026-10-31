@@ -58,15 +58,8 @@
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition x:Name="TitleBarRightInset" Width="138" />
             </Grid.ColumnDefinitions>
-            <Grid Margin="16,0,0,0" ColumnSpacing="8">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="16" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
-                <Image Width="16" Height="16" Source="ms-appx:///Assets/Square44x44Logo.targetsize-24_altform-unplated.png" />
-                <TextBlock x:Name="AppTitle" Grid.Column="1" Text="Pocket TTS Studio lite" FontFamily="Segoe UI Variable"
-                           FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-            </Grid>
+            <TextBlock x:Name="AppTitle" Text="Pocket TTS Studio lite" Margin="16,0,0,0" FontFamily="Segoe UI Variable"
+                       FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
         </Grid>
         <NavigationView x:Name="ShellNavigation" Grid.Row="1" PaneDisplayMode="Left" IsPaneOpen="True" IsPaneToggleButtonVisible="False" OpenPaneLength="208" CompactPaneLength="48"
                         FontFamily="Segoe UI Variable" FontSize="14" IsTitleBarAutoPaddingEnabled="False"
