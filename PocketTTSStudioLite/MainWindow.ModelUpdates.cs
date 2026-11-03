@@ -15,7 +15,7 @@ public sealed partial class MainWindow
     private bool _automaticModelUpdateCheckPending;
     private int _automaticModelUpdateSchedule;
     private int _modelUpdateCheckGeneration;
-    private bool ModelUpdateBlocksChanges => _checkingModelUpdates && _modelUpdateCheckIsManual;
+    private bool ModelUpdateBlocksChanges => _checkingUpdates || (_checkingModelUpdates && _modelUpdateCheckIsManual);
     private IReadOnlyList<PocketTtsModelSetupEntry> _modelRows = Array.Empty<PocketTtsModelSetupEntry>();
     private readonly Dictionary<string, PocketTtsModelUpdateResult> _modelUpdateResults = new(StringComparer.Ordinal);
 
@@ -29,13 +29,13 @@ public sealed partial class MainWindow
 
     private void TryStartPendingAutomaticModelUpdateCheck()
     {
-        if (!_automaticModelUpdateCheckPending || _closing || _checkingModelUpdates || _checkingModels || _modelInstalling || _modelRemoving || RuntimeUpdateBusy) { return; }
+        if (!_automaticModelUpdateCheckPending || _closing || _checkingUpdates || _checkingModelUpdates || _checkingModels || _modelInstalling || _modelRemoving || RuntimeUpdateBusy) { return; }
         _automaticModelUpdateCheckPending = false;
         int schedule = ++_automaticModelUpdateSchedule;
         DispatcherQueue.TryEnqueue(() =>
         {
             if (_closing || schedule != _automaticModelUpdateSchedule) { return; }
-            if (_checkingModelUpdates || _checkingModels || _modelInstalling || _modelRemoving || RuntimeUpdateBusy)
+            if (_checkingUpdates || _checkingModelUpdates || _checkingModels || _modelInstalling || _modelRemoving || RuntimeUpdateBusy)
             { _automaticModelUpdateCheckPending = true; return; }
             _ = RunModelUpdateCheckAsync(automatic: true);
         });
@@ -136,6 +136,7 @@ public sealed partial class MainWindow
     private void RenderModelUpdateRows() => ModelList.ItemsSource = _modelRows.Select(entry =>
         _modelUpdateResults.TryGetValue(entry.Name, out var update) && CanDisplayModelUpdate(entry, update)
             ? entry with { UpdateStatusText = update.StatusText, UpdateStatusDetail = update.ComparedCommit is null
-                ? update.Message : update.Message + " Main commit: " + update.ComparedCommit }
-            : entry with { UpdateStatusText = "", UpdateStatusDetail = "" }).ToArray();
+                ? update.Message : update.Message + " Main commit: " + update.ComparedCommit,
+                UpdateCommit = entry.CanActivate && update.Status == PocketTtsModelUpdateStatus.UpdateAvailable ? update.ComparedCommit : null }
+            : entry with { UpdateStatusText = "", UpdateStatusDetail = "", UpdateCommit = null }).ToArray();
 }

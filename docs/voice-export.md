@@ -1,5 +1,8 @@
 # Voice Cloning and native voice profile export
 
+Current release: **0.2.0**. See the [release verification record](releases/0.2.0.md)
+for current checks and user-confirmed installation, uninstall and scroll behavior.
+
 The application now uses the [model-first workflow](model-setup.md). Startup
 restores the last explicit usable selection, or activates the first usable model
 when no selection preference exists. Removal preserves an empty selection. Settings
@@ -19,6 +22,14 @@ voice profile. The native vertical StackPanel uses a 20-effective-pixel gap; car
 use Settings' 20-pixel padding, 8-pixel corners, theme brushes, and natural height.
 The native ScrollViewer owns scrolling and respects Windows' scrollbar accessibility
 settings. No page-specific resize handler or forced-scrollbar workaround is needed.
+
+Stable headings, inputs, audio players and export controls opt into native
+`CanBeScrollAnchor` handling. When the preview card or a notification changes the
+page layout, the ScrollViewer keeps a visible candidate at its existing viewport
+position, subject to the available scroll range. At the top/bottom edge, native
+range clamping still applies. Keyboard focus scrolling remains enabled; there is
+no saved-offset restoration, focus redirection or scroll-event interception.
+See [WinUI scroll anchoring](https://learn.microsoft.com/en-us/windows/windows-app-sdk/api/winrt/microsoft.ui.xaml.controls.iscrollanchorprovider).
 
 Generate preview retains the existing Model ComboBox and its selection/persistence
 behavior. The editable multiline text has a visible Preview text header and grows
@@ -145,7 +156,8 @@ New events replace the visible notification. X dismisses it; repeated identical
 callbacks do not reopen it. An explicit new picker/import/model-selection/export
 operation clears prior notification state, allowing a fresh attempt to report the
 same error. Empty reference status updates do not clear unrelated notifications.
-Showing a new notification reveals it in the page's existing scroll viewer.
+Showing a new notification does not request scrolling or move focus; the user
+keeps control of the page's scroll position.
 Navigation retains notification state without recreating or re-reporting it.
 
 The former inline reference status is removed. Voice preview inline text is now
@@ -237,48 +249,20 @@ supports native pinned snapshot caching and token environments/files, but has no
 independent model-install command or reliable `HF_HUB_OFFLINE` switch. Default
 remote configs can attempt authenticated downloads or fall back to non-cloning
 weights. Verified private-only configs avoid these paths. Installation uses the
-application installer; no model update installation or cache cleanup is provided.
+application's [model installation service](model-installation.md). Version 0.2.0
+also supports [explicit model updates](model-updates.md) and reference-aware
+cleanup of verified superseded private files; shared caches remain untouched.
 See [private storage](private-model-storage.md) and [runtime validation](pocket-tts-runtime.md).
 
-The private storage replacement was verified by an application Release build and
-source review only. No regression tests, launch, authentication, model downloads,
-actual installation, or voice export were performed. Earlier checks target
-the former storage/API contract and are not evidence for this replacement.
-Private installation, offline export, file/operation locking, cancellation, and
-interoperability remain for manual validation after the development inventory is
-cleaned up as documented in [private storage](private-model-storage.md).
+## Verification and limits
 
-### Current completion verification and limits
+Current automated checks and user-reported behavior are recorded in the
+[0.2.0 verification record](releases/0.2.0.md). Fixture tests cover transactional
+publication, cancellation, folder persistence/access, selection and notifications;
+they do not establish cross-model profile interoperability or all native picker,
+theme and pointer-interaction behavior.
 
-The pre-release cleanup passed a Release build with zero warnings/errors and reran
-44 profile publication/layout, 33 folder persistence/access, 34 generation/memory/player
-structure, 27 notification, and 16 display-waveform checks. The updated layout
-contracts cover page copy, single-column card order/full-width alignment/natural
-height, Preview text labeling, visible generation
-progress outside the initially hidden preview, and unchanged export/import wiring.
-Waveform checks cover reduced visual variation, width-based density, silence gaps,
-quiet/speech distinction, transients, and unchanged source envelopes/PCM/duration.
-No GUI was launched or automated; live resizing, themes, and pointer interaction
-remain unverified interactively.
-
-See the [0.1.0 pre-release review](release-readiness-0.1.0.md) for the complete check
-results and remaining legacy-test and distribution concerns. The earlier UI/folder
-completion results below are historical verification of that change.
-
-The UI/folder completion change passed a Release build with zero warnings/errors,
-35 filename/publication/layout checks, 33 isolated folder persistence/access checks,
-32 generation/memory/shared-player checks, 6 independent in-memory Windows player
-checks, and 27 notification checks (133 targeted checks total). Folder tests
-cover restart restoration, changed selections, missing folders without recreation,
-actual ACL-denied writes, malformed settings, cancellation, and locked-settings
-replacement with original preservation and staging cleanup. Publication tests cover
-confirmed replacement, unconfirmed/concurrent collisions, locked/missing output,
-and cancellation without damage to an existing file.
-
-No application launch or GUI automation was performed. Native picker/dialog
-interaction, actual UserControl visibility/layout, and a real native profile export
-were not exercised in this change. Existing export verification/processing was
-retained. Local write/delete access is required; network shares are unsupported.
+Local write/delete access is required; network shares are unsupported.
 Atomic replacement depends on the destination filesystem supporting `File.Replace`;
 failure reports an error rather than falling back to destructive overwrite. The
 pinned Rust runtime uses CPU inference and native preprocessing, including its own

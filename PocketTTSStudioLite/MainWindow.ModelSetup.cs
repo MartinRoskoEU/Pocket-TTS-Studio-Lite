@@ -17,7 +17,7 @@ public sealed partial class MainWindow
         _ = CheckModelsAsync(isStartup: true);
     }
 
-    private async void CheckModels_Click(object sender, RoutedEventArgs args) => await CheckInstalledModelUpdatesAsync();
+    private async void CheckModels_Click(object sender, RoutedEventArgs args) => await CheckUpdatesAsync();
 
     private async Task CheckModelsAsync(bool isStartup = false)
     {
@@ -35,11 +35,19 @@ public sealed partial class MainWindow
         {
             if (isStartup)
             {
+                var downloads = await PocketTtsDownloadOperation.RecoverAsync(_setupCancellation.Token);
                 var cleanup = await new PocketTtsModelRemovalService().RecoverAsync(_setupCancellation.Token);
+                if (downloads.HadWork)
+                {
+                    cleanup = new PocketTtsModelRemovalResult(false, false, downloads.DeletedBytes + (cleanup?.DeletedBytes ?? 0),
+                        cleanup?.SharedFilesRetained ?? 0, downloads.CleanupPending || cleanup?.CleanupPending == true,
+                        downloads.Message + (cleanup is null ? "" : "\n" + cleanup.Message));
+                }
                 if (cleanup is not null && !_closing)
                 {
-                    ShowModelInstallationCard("Pending model cleanup");
-                    RenderModelRemovalResult("Pending model cleanup", cleanup, recovery: true);
+                    ShowModelInstallationCard("Pending storage cleanup");
+                    RenderModelRemovalResult("Pending storage cleanup", cleanup, recovery: true);
+                    ModelInstallationTitleText.Text = cleanup.CleanupPending ? "Storage cleanup incomplete" : "Storage cleanup completed";
                 }
             }
             var result = await _modelSetup.CheckAsync(_setupCancellation.Token);

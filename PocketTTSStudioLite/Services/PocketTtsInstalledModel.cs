@@ -73,6 +73,30 @@ public sealed class PocketTtsInstalledModel
         catch { stream.Dispose(); throw; }
     }
 
+    internal static async Task ValidateUpdateShapeAsync(PocketTtsModelInventoryEntry previous, PocketTtsModelInstallPlan plan,
+        IReadOnlyDictionary<PocketTtsModelInstallFile, string> resolved, CancellationToken token)
+    {
+        var oldWeights = previous.RequiredFiles.Single(file => file.IsWeights);
+        var newWeights = plan.Files.Single(file => file.Asset.Weights);
+        async Task<Dictionary<string, string>> Shape(string path)
+        {
+            using var file = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+            byte[] length = new byte[8]; await file.ReadExactlyAsync(length, token).ConfigureAwait(false);
+            ulong bytes = System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(length);
+            if (bytes > 16 * 1024 * 1024 || bytes > (ulong)Math.Max(0, file.Length - 8)) throw new InvalidDataException("Invalid tensor header.");
+            byte[] header = new byte[(int)bytes]; await file.ReadExactlyAsync(header, token).ConfigureAwait(false);
+            using var json = JsonDocument.Parse(header);
+            return json.RootElement.EnumerateObject().Where(tensor => tensor.Name != "__metadata__").ToDictionary(
+                tensor => tensor.Name, tensor => tensor.Value.GetProperty("dtype").GetString() + ":" +
+                    string.Join(',', tensor.Value.GetProperty("shape").EnumerateArray().Select(value => value.GetInt64())), StringComparer.Ordinal);
+        }
+        var before = await Shape(PocketTtsModelInventoryService.ResolveBlobReference(oldWeights.RelativePath)).ConfigureAwait(false);
+        var after = await Shape(resolved[newWeights]).ConfigureAwait(false);
+        if (before.Count != after.Count || before.Any(pair => !after.TryGetValue(pair.Key, out var value) || value != pair.Value))
+            throw new InvalidDataException(
+                "The updated weights require a different model configuration. No update was activated; install a compatible Pocket TTS Studio lite release instead.");
+    }
+
     internal string LocalConfiguration()
     {
         string yaml = System.Text.RegularExpressions.Regex.Replace(Configuration,

@@ -178,6 +178,113 @@ internal static class PocketTtsRuntimeStore
     internal static bool IsWithin(string path, string root) => Path.GetFullPath(path).StartsWith(
         Path.GetFullPath(root).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase);
 
+    internal sealed record InactiveCleanup(long DeletedBytes, bool HadWork, bool CleanupPending);
+
+    // Caller owns runtime-update.lock. Never called by generation or export.
+    internal static async Task<InactiveCleanup> CleanupInactiveAsync(CancellationToken token)
+    {
+        PocketTtsModelStore.ValidatePath(RuntimesPath, localData: true);
+        if (!Directory.Exists(RuntimesPath)) return new(0, false, false);
+        long deleted = 0;
+        bool work = false, pending = false;
+        var candidates = new List<string>();
+        foreach (string release in Directory.EnumerateDirectories(RuntimesPath))
+        {
+            token.ThrowIfCancellationRequested();
+            if (Path.GetFileName(release) == ".staging") continue;
+            try
+            {
+                PocketTtsModelStore.ValidatePath(release, localData: true);
+                foreach (string directory in Directory.EnumerateDirectories(release))
+                {
+                    if (!IsHash(Path.GetFileName(directory))) continue;
+                    try
+                    {
+                        PocketTtsModelStore.ValidatePath(directory, localData: true);
+                        if (File.Exists(Path.Combine(directory, "runtime-installation.json"))) candidates.Add(directory);
+                    }
+                    catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidDataException)
+                    { work = pending = true; }
+                }
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidDataException)
+            { work = pending = true; }
+        }
+        if (candidates.Count == 0) return new(deleted, work, pending);
+        string activeDirectory = Path.GetDirectoryName(ResolveActivePath())!;
+        candidates = candidates.Where(directory => !string.Equals(directory, activeDirectory, StringComparison.OrdinalIgnoreCase)).ToList();
+        if (candidates.Count == 0) return new(deleted, work, pending);
+        var active = await ReadVerifiedActiveAsync(token).ConfigureAwait(false);
+        foreach (string directory in candidates)
+        {
+            token.ThrowIfCancellationRequested();
+            if (string.Equals(directory, activeDirectory, StringComparison.OrdinalIgnoreCase)) continue;
+            work = true;
+            PocketTtsDownloadOperation? retirement = null;
+            try
+            {
+                if ((await ReadVerifiedActiveAsync(token).ConfigureAwait(false)).Identity != active.Identity)
+                    throw new InvalidOperationException("The active runtime changed during cleanup.");
+                string[] names = ["pocket-tts.exe", "LICENSE", "runtime-installation.json"];
+                if (!Directory.EnumerateFileSystemEntries(directory).Select(Path.GetFileName).Order(StringComparer.Ordinal)
+                    .SequenceEqual(names.Order(StringComparer.Ordinal)))
+                    throw new InvalidDataException("Unknown old runtime content was preserved.");
+                var verified = await VerifyRuntimeAsync(Path.Combine(directory, "pocket-tts.exe"), token, initializeIdentity: false).ConfigureAwait(false);
+                var receipt = ReadJson<InstallationReceipt>(Path.Combine(directory, "runtime-installation.json"));
+                var leases = new List<FileStream>();
+                var hashes = new Dictionary<string, string>(StringComparer.Ordinal);
+                try
+                {
+                    foreach (string name in names)
+                    {
+                        string path = Path.Combine(directory, name);
+                        var lease = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.None);
+                        leases.Add(lease);
+                        PocketTtsModelStore.ValidateFile(path, lease.SafeFileHandle, localData: true);
+                        hashes.Add("payload/" + name, Convert.ToHexString(await SHA256.HashDataAsync(lease, token).ConfigureAwait(false)));
+                    }
+                    if (!hashes["payload/pocket-tts.exe"].Equals(verified.Identity.ExecutableSha256, StringComparison.OrdinalIgnoreCase) ||
+                        !hashes["payload/LICENSE"].Equals(receipt.LicenseSha256, StringComparison.OrdinalIgnoreCase))
+                        throw new InvalidDataException("The old runtime changed during cleanup.");
+                    leases[2].Position = 0;
+                    if (await JsonSerializer.DeserializeAsync<InstallationReceipt>(leases[2], cancellationToken: token).ConfigureAwait(false) != receipt)
+                        throw new InvalidDataException("The old runtime receipt changed during cleanup.");
+                    retirement = await PocketTtsDownloadOperation.BeginRuntimeRetirementAsync(hashes, token).ConfigureAwait(false);
+                    token.ThrowIfCancellationRequested();
+                    // Windows requires child handles to close for a directory rename. The durable
+                    // retirement record rechecks these exact hashes before and during deletion.
+                    foreach (var lease in leases) lease.Dispose();
+                    leases.Clear();
+                    Directory.Move(directory, Path.Combine(retirement.DirectoryPath, "payload"));
+                }
+                finally { foreach (var lease in leases) lease.Dispose(); }
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidDataException or InvalidOperationException or JsonException)
+            { pending = true; }
+            finally
+            {
+                if (retirement is not null)
+                {
+                    try { deleted += await retirement.CleanupAsync().ConfigureAwait(false); }
+                    catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidDataException or InvalidOperationException or JsonException)
+                    { pending = true; }
+                }
+            }
+            string parent = Path.GetDirectoryName(directory)!;
+            if (!Directory.Exists(directory))
+            {
+                try
+                {
+                    PocketTtsModelStore.ValidatePath(parent, localData: true);
+                    if (Directory.Exists(parent) && !Directory.EnumerateFileSystemEntries(parent).Any())
+                        PocketTtsModelStore.DeleteEmptyDirectory(parent, PocketTtsModelStore.DirectoryIdentity(parent));
+                }
+                catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidDataException) { /* Empty parent pruning is optional. */ }
+            }
+        }
+        return new(deleted, work, pending);
+    }
+
     internal static void EnsureDirectory(string path)
     {
         string fullPath = Path.GetFullPath(path);
@@ -198,10 +305,4 @@ internal static class PocketTtsRuntimeStore
         }
     }
 
-    internal static void DeleteStagingDirectory(string path)
-    {
-        string fullPath = Path.GetFullPath(path);
-        if (!IsWithin(fullPath, StagingPath)) { throw new InvalidOperationException("Refusing to delete outside runtime staging."); }
-        if (Directory.Exists(fullPath)) { EnsureNoReparsePoints(fullPath); Directory.Delete(fullPath, recursive: true); }
-    }
 }

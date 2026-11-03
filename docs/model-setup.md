@@ -16,7 +16,8 @@ failures return to Settings and display the existing setup error status. The Mod
 ComboBox in Voice Cloning uses the same activation service to choose another usable model.
 Its checked choices refresh on entry and preserve a still-valid active selection.
 Settings contains no selection controls or **Use Model** action. **Check for updates**
-first rechecks local inventory without activating another model or changing pages,
+in the Settings header first checks runtime releases, then rechecks local inventory
+without activating another model or changing pages,
 then performs the manual [anonymous model update check](model-update-checks.md)
 for registered installed models only.
 
@@ -24,7 +25,8 @@ for registered installed models only.
 
 The full-width **Models** card uses the existing Fluent card background/border,
 8-pixel corners, and 20-pixel padding. Its header says "Manage installed and
-supported voice models." and offers **Check for updates**. Native `ItemsRepeater`
+supported voice models."; the shared **Check for updates** action is in the Settings
+page header. Native `ItemsRepeater`
 rows share the page's vertical scrolling, with no selection highlight, details
 panel, fixed list height, or nested scrollbar. Each row shows the identifier,
 status glyph/text, and contextual actions. Install is enabled only with complete
@@ -107,7 +109,10 @@ Later checks rehash the executable and compare the saved release/hash against
 the trusted bundled pin or a verified local installation receipt. Ordinary checks
 never overwrite identities; invalid or mismatched records fail explicitly.
 Only an explicitly confirmed runtime installation can atomically replace the
-identity after validation, retaining a previous-identity backup for rollback.
+identity after validation, retaining a previous-identity backup for recovery if
+activation fails. After successful activation, verified inactive downloaded
+runtimes are retired; there is no user-facing rollback archive. See
+[runtime cleanup](runtime-cleanup.md).
 Both startup checks and pre-export runtime validation use this identification.
 Release identity comes from the pinned release/hash pairing, never from the
 executable's internal `--version` output. Existing version/help and CPU diagnostics
@@ -165,7 +170,7 @@ its assets. Existing export size/hash/cloning-tensor checks remain required.
 The first eligible entry is still activated at startup; manual refresh preserves
 the active identifier if it remains eligible and clears it otherwise. Model
 installation is explicit and never activates another model or navigates. Removal
-is explicit with native confirmation; installation of model updates is not implemented.
+is explicit with native confirmation; verified compatible models support [explicit updates](model-updates.md).
 
 This verifies the deployment contract; it is not evidence of a completed inference
 or exported-profile interoperability test. Private model storage is independent
@@ -202,7 +207,7 @@ existing OAuth flow only when an anonymous download needs authorization. Setting
 has no persistent authentication controls; the in-memory session is cleared on
 every installation outcome. Sign-in is not part of startup or local export.
 Registered models can be removed with reference-checked private cleanup and
-recovery. Installation of model updates is not implemented.
+recovery. Verified compatible models support [explicit updates](model-updates.md).
 
 Installation progress and dismissible results appear in a separate Fluent card
 between Runtime and Models, rather than below the model list. Its real progress

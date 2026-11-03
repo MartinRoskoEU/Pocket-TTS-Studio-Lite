@@ -155,9 +155,9 @@ try
         () => VerifyInterruptedTree(timeout: true, partialFailure: false, version: true), hardening: true);
     await Verify("Export-help diagnostics time out after 15 seconds and stop the owned tree",
         () => VerifyInterruptedTree(timeout: true, partialFailure: false), hardening: true);
-    await Verify("Partial termination overrides cancellation and best-effort stops the root",
+    await Verify("Partial termination remains explicit while job containment stops the owned tree",
         () => VerifyInterruptedTree(timeout: false, partialFailure: true), hardening: true);
-    await Verify("Partial termination overrides timeout even when the root already exited",
+    await Verify("Partial termination overrides timeout and job cleanup stops descendants after root exit",
         () => VerifyInterruptedTree(timeout: true, partialFailure: true), hardening: true);
 
     await Verify("Unsupported AVX2/FMA is rejected before executable lookup", async () =>
@@ -240,7 +240,8 @@ async Task VerifyInterruptedTree(bool timeout, bool partialFailure, bool version
             Check(exception.Message.Contains("incomplete") && exception.Message.Contains("may still be running"),
                 "Partial cleanup must not be reported as successful cancellation or timeout.");
             Check(ReferenceEquals(exception.InnerException, partialError), "Aggregate termination details were lost.");
-            Check(!child.HasExited, "The partial-failure fixture must leave its descendant alive for verification.");
+            // The legacy termination hook fails deliberately. The production native
+            // job still owns descendants and must remove them when the operation unwinds.
         }
         else if (timeout)
         {
@@ -261,7 +262,8 @@ async Task VerifyInterruptedTree(bool timeout, bool partialFailure, bool version
         }
 
         await parent.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(5));
-        if (!partialFailure) { await child.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(5)); }
+        await child.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(5));
+        Check(child.HasExited, "An owned descendant survived native job cleanup.");
         Check(parent.HasExited && !unrelated.HasExited, "Interruption affected the wrong process.");
     }
     finally

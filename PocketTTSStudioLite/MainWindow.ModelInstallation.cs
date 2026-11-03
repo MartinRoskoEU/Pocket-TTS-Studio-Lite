@@ -16,6 +16,7 @@ public sealed partial class MainWindow
     private bool _modelInstalling;
     private bool _closingAfterModelInstall;
     private bool _modelInstallationResultShown;
+    private bool _modelUpdating;
 
     private void InitializeModelInstallation()
     {
@@ -49,7 +50,7 @@ public sealed partial class MainWindow
         }
     }
 
-    private async Task RunModelInstallationAsync(string alias, CancellationTokenSource cancellation)
+    private async Task RunModelInstallationAsync(string alias, CancellationTokenSource cancellation, PocketTtsModelSetupEntry? update = null)
     {
         var progress = new Progress<PocketTtsModelInstallProgress>(value => DispatcherQueue.TryEnqueue(() =>
         {
@@ -63,7 +64,10 @@ public sealed partial class MainWindow
         try
         {
             var installer = new PocketTtsModelInstallService(_modelInstallHttp, _authentication.GetAccessTokenForProcess);
-            result = await installer.InstallAsync(alias, progress, cancellation.Token);
+            Task<PocketTtsModelInstallResult> InstallOrUpdateAsync() => update is null
+                ? installer.InstallAsync(alias, progress, cancellation.Token)
+                : installer.UpdateAsync(alias, update.InventoryIdentity!, update.UpdateCommit!, progress, cancellation.Token);
+            result = await InstallOrUpdateAsync();
             if (result.Failure is PocketTtsModelInstallFailure.AuthenticationRequired or PocketTtsModelInstallFailure.AuthenticationFailed)
             {
                 cancellation.Token.ThrowIfCancellationRequested();
@@ -72,18 +76,18 @@ public sealed partial class MainWindow
                 var authenticationStatus = await dialog.AuthorizeAsync(cancellation.Token);
                 cancellation.Token.ThrowIfCancellationRequested();
                 if (authenticationStatus.State == HuggingFaceAuthenticationState.SignedIn && _authentication.IsSignedIn)
-                { result = await installer.InstallAsync(alias, progress, cancellation.Token); }
+                { result = await InstallOrUpdateAsync(); }
                 else
                 {
                     bool cancelled = authenticationStatus.State == HuggingFaceAuthenticationState.Cancelled;
                     result = new(false, cancelled ? PocketTtsModelInstallFailure.Cancelled : PocketTtsModelInstallFailure.AuthenticationFailed,
-                        cancelled ? "Model installation cancelled during sign-in. No model was installed."
+                        cancelled ? (update is null ? "Model installation cancelled during sign-in. No model was installed." : "Model update cancelled during sign-in. The previous model remains installed.")
                         : "Hugging Face authentication did not complete. " + authenticationStatus.Message);
                 }
             }
         }
         catch (OperationCanceledException)
-        { result = new(false, PocketTtsModelInstallFailure.Cancelled, "Model installation cancelled. No incomplete installation was registered."); }
+        { result = new(false, PocketTtsModelInstallFailure.Cancelled, update is null ? "Model installation cancelled. No incomplete installation was registered." : "Model update cancelled. Check Models to verify its state; recorded cleanup will be retried at startup."); }
         catch (Exception)
         { result = new(false, PocketTtsModelInstallFailure.Storage, "Model installation could not complete. Check local storage permissions and retry."); }
         finally
@@ -118,7 +122,8 @@ public sealed partial class MainWindow
     {
         _modelInstallationResultShown = false;
         CancelModelInstallationButton.Content = "Cancel installation";
-        ModelInstallationTitleText.Text = "Installing model";
+        ModelInstallationTitleText.Text = _modelUpdating ? "Updating model" : "Installing model";
+        if (_modelUpdating) CancelModelInstallationButton.Content = "Cancel update";
         ModelInstallationTitleText.Style = (Style)ModelInstallationPanel.Resources["InstallationTitleStyle"];
         ModelInstallationModelText.Text = alias;
         ModelInstallationModelText.Visibility = Visibility.Visible;
@@ -134,7 +139,9 @@ public sealed partial class MainWindow
     {
         _modelInstallationResultShown = true;
         bool cancelled = !result.Succeeded && result.Failure == PocketTtsModelInstallFailure.Cancelled;
-        ModelInstallationTitleText.Text = result.Succeeded ? "Installation completed" : cancelled ? "Installation cancelled" : "Installation failed";
+        ModelInstallationTitleText.Text = _modelUpdating
+            ? (result.Succeeded ? "Update completed" : cancelled ? "Update cancelled" : "Update failed")
+            : (result.Succeeded ? "Installation completed" : cancelled ? "Installation cancelled" : "Installation failed");
         string titleStyle = result.Succeeded ? "InstallationSuccessTitleStyle" : cancelled ? "InstallationNeutralTitleStyle" : "InstallationErrorTitleStyle";
         ModelInstallationTitleText.Style = (Style)ModelInstallationPanel.Resources[titleStyle];
         ModelInstallationResultIcon.Glyph = result.Succeeded ? "\uE73E" : cancelled ? "\uE711" : "\uEA39";
@@ -142,7 +149,7 @@ public sealed partial class MainWindow
         ModelInstallationHeading.ColumnSpacing = 10;
         ModelInstallationHeading.MinHeight = 32;
         ModelInstallationModelText.Visibility = result.Succeeded ? Visibility.Collapsed : Visibility.Visible;
-        ModelInstallationStatusText.Text = result.Succeeded ? $"{alias} was installed and verified." : result.Message;
+        ModelInstallationStatusText.Text = result.Succeeded && !result.CleanupPending && !_modelUpdating ? $"{alias} was installed and verified." : result.Message;
         ModelInstallationProgress.Visibility = Visibility.Collapsed;
         CancelModelInstallationButton.Visibility = Visibility.Collapsed;
         DismissModelInstallationButton.Visibility = Visibility.Visible;
@@ -164,7 +171,6 @@ public sealed partial class MainWindow
     private void RenderModelInstallationConflicts()
     {
         ModelListHost.IsEnabled = !_modelInstalling && !_modelRemoving && !_checkingModels && !ModelUpdateBlocksChanges && !RuntimeUpdateBusy;
-        CheckModelsButton.IsEnabled = !_modelInstalling && !_modelRemoving && !_checkingModels && !_checkingModelUpdates && !RuntimeUpdateBusy;
         RenderRuntimeUpdateStatus();
         TryStartPendingAutomaticModelUpdateCheck();
     }

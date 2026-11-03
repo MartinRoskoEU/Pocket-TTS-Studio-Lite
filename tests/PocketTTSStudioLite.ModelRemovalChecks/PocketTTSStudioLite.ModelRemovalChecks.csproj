@@ -4,8 +4,13 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <RootNamespace>PocketTTSStudioLite</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="..\..\PocketTTSStudioLite\Services\PocketTtsDownloadOperation.cs" Link="Services\PocketTtsDownloadOperation.cs" />
+    <Compile Include="..\..\PocketTTSStudioLite\Services\PocketTtsModelInstallPlan.cs" Link="Services\PocketTtsModelInstallPlan.cs" />
+    <Compile Include="..\..\PocketTTSStudioLite\Services\PocketTtsModelInstallService.cs" Link="Services\PocketTtsModelInstallService.cs" />
+    <EmbeddedResource Include="..\..\PocketTTSStudioLite\RuntimeMetadata\**\*.yaml;..\..\PocketTTSStudioLite\RuntimeMetadata\**\*.json" Link="RuntimeMetadata\%(RecursiveDir)%(Filename)%(Extension)" />
     <Compile Include="..\..\PocketTTSStudioLite\Services\ApplicationInfo.cs" Link="Services\ApplicationInfo.cs" />
     <Compile Include="..\..\PocketTTSStudioLite\Services\PocketTtsModelStore.cs;..\..\PocketTTSStudioLite\Services\PocketTtsModelInventoryEntry.cs;..\..\PocketTTSStudioLite\Services\PocketTtsModelInventoryService.cs;..\..\PocketTTSStudioLite\Services\PocketTtsInstalledModel.cs;..\..\PocketTTSStudioLite\Services\PocketTtsModelRemovalService.cs;..\..\PocketTTSStudioLite\Services\PocketTtsNativeOperation.cs;..\..\PocketTTSStudioLite\Services\PocketTtsModelUpdateCoordinator.cs;..\..\PocketTTSStudioLite\Services\PocketTtsModelUpdateService.cs" Link="Services\%(Filename)%(Extension)" />
   </ItemGroup>

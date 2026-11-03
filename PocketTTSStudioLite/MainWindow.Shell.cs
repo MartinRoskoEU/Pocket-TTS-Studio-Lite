@@ -83,13 +83,18 @@ public sealed partial class MainWindow
 
     private void AvailableModelsPanel_SizeChanged(object sender, SizeChangedEventArgs args)
     {
-        bool narrow = args.NewSize.Width < 480;
-        Grid.SetColumnSpan(ModelsHeaderText, narrow ? 2 : 1);
-        Grid.SetRow(CheckModelsButton, narrow ? 1 : 0);
-        Grid.SetColumn(CheckModelsButton, narrow ? 0 : 1);
-        Grid.SetColumnSpan(CheckModelsButton, narrow ? 2 : 1);
-        CheckModelsButton.HorizontalAlignment = narrow ? HorizontalAlignment.Left : HorizontalAlignment.Right;
-        AvailableModelsHeader.RowSpacing = narrow ? 12 : 0;
+        Grid.SetColumnSpan(ModelsHeaderText, 2);
+        AvailableModelsHeader.RowSpacing = 0;
+    }
+
+    private void UpdateHeader_SizeChanged(object sender, SizeChangedEventArgs args)
+    {
+        bool narrow = args.NewSize.Width < 560;
+        Grid.SetColumnSpan(SettingsHeaderText, narrow ? 2 : 1);
+        Grid.SetRow(UpdateCheckActions, narrow ? 1 : 0);
+        Grid.SetColumn(UpdateCheckActions, narrow ? 0 : 1);
+        Grid.SetColumnSpan(UpdateCheckActions, narrow ? 2 : 1);
+        UpdateCheckActions.HorizontalAlignment = narrow ? HorizontalAlignment.Left : HorizontalAlignment.Right;
     }
 
     private void RuntimeRow_SizeChanged(object sender, SizeChangedEventArgs args)

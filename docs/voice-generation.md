@@ -1,5 +1,9 @@
 # Local generation and in-memory preview
 
+Current release: **0.2.0**. Result cards use native scroll anchoring as described in
+[Voice Cloning layout](voice-export.md). Current verification and user-reported
+acceptance are in the [release record](releases/0.2.0.md).
+
 Generate uses the selected installed, verified, runtime-compatible model, the loaded
 reference, and the editable Preview text in Generate preview. It is enabled only when these are usable
 and no conflicting operation is running. Speech generation, voice conditioning,
@@ -129,17 +133,6 @@ bars and leaving the decoded PCM/envelope and time-based seeking unchanged.
 - Windows Media Foundation/installed media components are still required. Windows N
   editions may need the Media Feature Pack.
 
-Initial implementation verification used synthetic memory/temporary reference fixtures
-and local CLI diagnostics. A later isolated runtime streaming probe used verified
-private `english_2026-10` weights, a local reference, and 302 words. It received the
-first nonzero PCM at 81.16 ms, 313 audio chunks, and a complete response at 25.528 s;
-Media Foundation decoded 126.36 seconds of audio entirely in memory. This confirmed
-that the pinned official HTTP server genuinely streams during generation. The
-application still buffers the response to completion; streaming playback is not
-implemented by the UI/export completion change. No generated WAV files, model
-downloads, application launch, or GUI automation were involved. Actual UserControl
-rendering/pointer interaction remains unverified interactively.
-
 Targeted commands:
 
 ```powershell
@@ -155,12 +148,5 @@ streaming WAV headers, actual waveform/duration data, and the shared-control lay
 Muted headless Windows player checks exercise two independent instances, playback,
 seeking, duration, and completion without audio files or WinUI application startup.
 
-Initial results: application Release build succeeded with zero warnings/errors; all 30
-generation/memory checks, 6 independent-player checks, 61 reference filtering checks,
-50 selection/persistence checks, 27 notification checks, and 35 existing profile
-publication/layout checks passed (209 targeted checks total).
-
-UI/export completion verification reran the generation group with 32 passing checks,
-including initial player collapse and placeholder removal, and passed the application
-Release build with zero warnings/errors. See [current export verification](voice-export.md#current-completion-verification-and-limits)
-for folder persistence, transactional publication, and notification results.
+For current check counts and accepted product behavior, see the
+[0.2.0 verification record](releases/0.2.0.md).

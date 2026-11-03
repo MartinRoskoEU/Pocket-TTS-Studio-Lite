@@ -41,7 +41,9 @@ installed registration; window close can interrupt cleanup and leave recovery
 work. Notifications report actual deleted bytes, retained shared references, and
 pending failures. Missing, retained, or undeleted files reclaim no reported space.
 An attempt can also finish work from previous removals. No recursive removal,
-orphan/staging sweep, or Hugging Face cache access is performed.
+orphan/staging sweep, or Hugging Face cache access is performed. Startup separately
+recovers [recorded temporary downloads](temporary-download-recovery.md) before
+retrying pending model removal.
 
 ## Native operations and stale selection
 

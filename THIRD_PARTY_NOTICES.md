@@ -19,6 +19,11 @@ UCRT and Media Foundation remain OS components; missing Media Feature Pack on
 Windows N is provisioned through Microsoft's Windows servicing mechanism, not a
 redistributed third-party codec. No model weights are bundled or fetched by setup.
 
+The per-user maintenance console helper also distributes the same self-contained
+.NET components under these notices; it adds no third-party package dependency.
+Its native deletion/hash support uses the existing statically linked MSVC helper
+and Windows-provided BCrypt APIs. No additional shared runtime is installed.
+
 Inno Setup 7.1.0 is the build tool used for the initial installer. Its original
 copyright/website notices remain in the unmodified setup engine and its license is
 included at `licenses/Inno-Setup-license.txt`. Its [license](https://github.com/jrsoftware/issrc/blob/is-7_1_0/license.txt)

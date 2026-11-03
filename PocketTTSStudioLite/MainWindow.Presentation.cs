@@ -96,7 +96,7 @@ public sealed partial class MainWindow
         if (sender is not Grid row) { return; }
         var identifier = row.Children.OfType<TextBlock>().FirstOrDefault();
         var status = row.Children.OfType<Grid>().FirstOrDefault();
-        var action = row.Children.OfType<Button>().FirstOrDefault();
+        var action = row.Children.OfType<StackPanel>().FirstOrDefault();
         if (identifier is null || status is null || action is null) { return; }
         bool stacked = args.NewSize.Width < 560;
         row.RowSpacing = stacked ? 8 : 0;

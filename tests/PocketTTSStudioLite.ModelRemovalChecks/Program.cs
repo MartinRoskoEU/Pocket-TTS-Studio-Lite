@@ -53,6 +53,8 @@ async Task Commit(PocketTtsModelInventoryEntry model)
 }
 try
 {
+    passed += await DownloadRecoveryChecks.RunAsync(sandbox);
+    passed += await ModelUpdateChecks.RunAsync(sandbox);
     Fresh();
     var first = Model("first", "first weights", "shared tokenizer");
     var second = Model("second", "second weights", "shared tokenizer") with { ConfigurationYaml = "invalid config: deliberately unverified" };

@@ -5,8 +5,9 @@ active runtime, with a complete embedded configuration and trusted, immutable
 repository metadata. Installed/incompatible models cannot be installed again.
 Unregistered verified private blobs can be reused during an explicit installation.
 Shared cache contents alone never establish installation. Registered models needing repair remain Unverified; replacing or
-repairing an existing inventory record and installation of model updates are not
-implemented. Registered models support [confirmed removal](model-removal.md) with
+repairing a damaged inventory record is not implemented. Verified compatible
+registered models support [explicit updates](model-updates.md), and registered
+models support [confirmed removal](model-removal.md) with
 shared-file protection and recovery. Manual anonymous [update checks](model-update-checks.md) are
 available separately and never change installed files or inventory. Unknown runtime compatibility never enables installation.
 
@@ -95,7 +96,9 @@ publication, and registration across processes. Registration rechecks files and
 uses the existing atomic inventory writer/backup. No incomplete installation is
 registered. Cancellation before commit leaves no record; cancellation after a
 successful atomic commit does not falsely report failure. Cleanup touches only
-this operation's temporary files/empty staging directory. Published unregistered
+this operation's recorded temporary files/empty staging directory, with the
+installation lock held through cleanup. Interrupted cleanup is retried at startup
+using [durable operation records](temporary-download-recovery.md). Published unregistered
 blobs remain reusable, with no automatic cleanup or Installed classification.
 
 See [private storage](private-model-storage.md) for path/handle/link protections,

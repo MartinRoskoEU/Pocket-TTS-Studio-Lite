@@ -75,12 +75,22 @@ if ($runtimeConfig.runtimeOptions.PSObject.Properties.Name -contains 'frameworks
 if (Get-ChildItem $payload -Recurse -File | Where-Object { $_.Extension -in '.safetensors', '.onnx', '.pt', '.pth', '.wav', '.mp3' }) { throw 'Model/audio data must not be distributed in the installer.' }
 
 $compile = '@call "' + $vcvars + '" >nul' + "`r`n" +
-    '@cl.exe /nologo /LD /MT /O2 /W4 /WX /guard:cf /Fo"' + $support + '\InstallerSupport.obj" "' +
+    '@cl.exe /nologo /std:c++20 /EHsc /LD /MT /O2 /W4 /WX /guard:cf /Fo"' + $support + '\InstallerSupport.obj" "' +
     (Join-Path $PSScriptRoot 'InstallerSupport.cpp') + '" /link /OUT:"' + $support + '\InstallerSupport.dll" /IMPLIB:"' +
     $support + '\InstallerSupport.lib" /DYNAMICBASE /NXCOMPAT' + "`r`n@exit /b %errorlevel%`r`n"
 $compileScript = Join-Path $support 'compile.cmd'
 Set-Content -LiteralPath $compileScript -Value $compile -Encoding ASCII
 Invoke-Checked $env:ComSpec @('/d', '/c', $compileScript)
+
+$worker = Join-Path $support 'worker'
+Invoke-Checked dotnet @('publish', (Join-Path $PSScriptRoot 'Maintenance\PocketTTSStudioLite.Maintenance.csproj'), '-c', 'Release', '--output', $worker)
+$workerConfig = Get-Content (Join-Path $worker 'PocketTTSStudioLite.Maintenance.runtimeconfig.json') -Raw | ConvertFrom-Json
+if ($workerConfig.runtimeOptions.includedFrameworks[0].version -ne $runtimeConfig.runtimeOptions.includedFrameworks[0].version) {
+    throw 'Application and maintenance worker must use the same licensed .NET runtime version.'
+}
+New-Item -ItemType Directory -Force (Join-Path $payload 'maintenance') | Out-Null
+Copy-Item -LiteralPath $worker -Destination (Join-Path $payload 'maintenance\worker') -Recurse
+Copy-Item -LiteralPath (Join-Path $support 'InstallerSupport.dll') -Destination (Join-Path $payload 'maintenance\InstallerSupport.dll')
 
 # Audit direct AND delayed native imports. The current payload uses the Windows
 # inbox UCRT, not a shared VC++ redistributable. Fail if that dependency changes.
@@ -138,8 +148,12 @@ Copy-Item (Join-Path $PSScriptRoot 'licenses\*') $licenses -Recurse
 $licenseCount = (Get-ChildItem $licenses -Recurse -File).Count
 if ($licenseCount -lt 10) { throw 'Dependency license collection is incomplete.' }
 
-Invoke-Checked $IsccPath @('--quiet-progress', "--define=AppVersion=$version", "--define=PayloadDir=$payload", "--define=SupportDir=$support", "--define=OutputDir=$output", (Join-Path $PSScriptRoot 'PocketTTSStudioLite.iss'))
+$inventory = & (Join-Path $PSScriptRoot 'write-maintenance-inventory.ps1') -Payload $payload -Support $support -Version $version
+
+Invoke-Checked $IsccPath @('--quiet-progress', "--define=AppVersion=$version", "--define=PayloadDir=$payload", "--define=SupportDir=$support", "--define=OutputDir=$output", "--define=PackageManifestHash=$($inventory.ManifestHash)", "--define=SupportHash=$($inventory.SupportHash)", (Join-Path $PSScriptRoot 'PocketTTSStudioLite.iss'))
 $installer = Join-Path $output "PocketTTSStudioLite-$version-win-x64-Setup.exe"
+$checksum = Get-FileHash -LiteralPath $installer -Algorithm SHA256
+[IO.File]::WriteAllText($installer + '.sha256', ($checksum.Hash.ToLowerInvariant() + '  ' + [IO.Path]::GetFileName($installer) + "`n"), [Text.UTF8Encoding]::new($false))
 Get-Item $installer | Select-Object FullName, Length
-Get-FileHash $installer -Algorithm SHA256
+$checksum
 Write-Host "Installer built from $staging. No installation/uninstallation was performed."

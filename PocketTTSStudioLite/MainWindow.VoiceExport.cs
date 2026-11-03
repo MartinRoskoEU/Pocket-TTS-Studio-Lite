@@ -19,7 +19,7 @@ public sealed partial class MainWindow
     private bool _closingAfterExport;
     private bool _exportFolderLoading, _exportFolderAvailable;
 
-    private bool VoiceExportBusy => _generationCleanupBlocked || _generating || _closingAfterGeneration || _checkingModels ||
+    private bool VoiceExportBusy => _checkingUpdates || _generationCleanupBlocked || _generating || _closingAfterGeneration || _checkingModels ||
         _selectingExportModel || _referenceContextTask is not null || _referenceLoading || _closingAfterReferenceAudio ||
         _modelInstalling || _modelRemoving || _exportRunning || _pickerOpen || _closingAfterExport || _closing || RuntimeUpdateBusy;
     private bool CanSelectExportFolder => !VoiceExportBusy && !_exportFolderLoading;

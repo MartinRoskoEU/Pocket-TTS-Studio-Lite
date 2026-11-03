@@ -24,12 +24,6 @@ public sealed partial class MainWindow
         VoiceExportNotificationMessageText.Text = notification.Message;
         VoiceExportNotificationIcon.Glyph = glyph;
         VoiceExportNotificationPanel.Visibility = Visibility.Visible;
-        DispatcherQueue.TryEnqueue(() =>
-        {
-            if (_closing || VoiceExportPanel.Visibility != Visibility.Visible ||
-                VoiceExportNotificationPanel.Visibility != Visibility.Visible || _voiceExportNotifications.Current != notification) { return; }
-            VoiceExportNotificationPanel.StartBringIntoView(new BringIntoViewOptions { AnimationDesired = true, VerticalAlignmentRatio = 0 });
-        });
     }
 
     private void BeginVoiceExportNotificationOperation()

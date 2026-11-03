@@ -16,6 +16,7 @@ PocketTTSStudioLite/
       sha256/<lowercase-payload-sha256>
       git-blob-sha1/<lowercase-git-blob-sha1>
     .staging/<operation-guid>/<file-guid>.partial
+    .staging/<operation-guid>.json     # durable temporary-download ownership
 ```
 
 Each blob is a regular independent file containing verified asset bytes. There
@@ -50,9 +51,11 @@ commit establishes installation. A crash/failure can leave verified unregistered
 blobs for a later explicit Install to reuse; they do not unlock export or appear
 as Installed. No orphan cleanup is implemented.
 
-The installer cleans only files it created in its own operation directory and
-removes that directory only if empty. Published blobs and other operation
-directories are preserved. Interrupted/crashed-process leftovers are not swept.
+The model installer records ownership before creating temporary payloads and
+cleans only recorded files in its own operation directory, removing directories
+only when empty. Startup retries valid recorded interrupted downloads under the
+installation lock. Published blobs, unrecorded legacy staging and unknown content
+are preserved. See [temporary download recovery](temporary-download-recovery.md).
 Shared HF cache files, directories, refs, snapshots, and locks are never modified.
 
 ## Inventory and runtime use
@@ -94,7 +97,7 @@ intact. Identity fingerprints include private paths and configuration, so old
 shared-path update results cannot apply to reinstalled private models. The
 24-hour per-identity scheduler treats a new private installation as eligible.
 Runtime validation/updating and OAuth Device Flow are preserved. Model removal
-uses the existing UI notification card; model update installation is not added.
+uses the existing UI notification card; explicit [model updates](model-updates.md) reuse this cleanup for superseded files and receipts.
 
 ## Manual development cleanup before reinstalling
 

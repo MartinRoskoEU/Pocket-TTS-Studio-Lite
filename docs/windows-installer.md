@@ -1,7 +1,7 @@
 # Windows installer and release version
 
 The Inno Setup installer is an unpackaged, per-user Windows x64 distribution.
-It uses the existing application and runtime services unchanged. No automatic
+It reuses the application storage/verification guards for owned maintenance. No automatic
 application updater, model payload, model download, or audio file is included.
 
 ## Version and build
@@ -42,8 +42,9 @@ identity fail packaging. Its internal `--version` is 3.3.0; that is not the rele
 identity. No native runtime or model is downloaded by the packaging script.
 
 Each run uses fresh staging under `artifacts/installer/staging/<guid>/`, publishes
-with `Properties/PublishProfiles/installer-x64.pubxml`, builds the installer-only CPU
-check, audits native direct/delayed imports, collects licenses, and runs ISCC.
+with `Properties/PublishProfiles/installer-x64.pubxml`, builds the CPU/maintenance
+DLL and self-contained console worker, audits native direct/delayed imports,
+collects licenses, generates payload/worker inventories and runs ISCC.
 Final output: `release/PocketTTSStudioLite-<Version>-win-x64-Setup.exe` at the
 repository root. The build passes this directory to Inno Setup's native `OutputDir`
 configuration; the compiler writes the EXE there directly. Staging, tools, existing
@@ -102,7 +103,8 @@ old uninstaller as an upgrade step.
 
 Models, settings, caches, installed runtime updates, and other private data live in
 `%LOCALAPPDATA%\PocketTTSStudioLite`, outside the installed program directory.
-They are neither replaced nor deleted on upgrade. No shared Hugging Face cache or
+They are neither replaced nor deleted on upgrade. Inventoried obsolete application
+files are cleaned separately, with pending work retained on failure. No shared Hugging Face cache or
 user-selected export destination is inspected or modified by setup.
 
 ## Uninstallation
@@ -111,19 +113,22 @@ Windows Settings / Installed apps and the Start Menu uninstall shortcut invoke t
 standard Inno uninstaller. It removes installed files, its shortcuts, and its
 Windows uninstall entry. No shared Microsoft component is uninstalled.
 
-Interactive uninstall separately asks whether to permanently remove the **complete**
-private data directory, showing its full path and warning about downloaded models,
-runtimes, settings and caches. **No** is the default. Silent uninstall always keeps
-private data. Cancellation before uninstall does not remove private data.
+Interactive uninstall separately offers removal of **verified** private model,
+runtime and settings data, showing its fixed path. **No** is the default; silent
+uninstall keeps private data. Unknown files, unregistered assets and external
+profiles are preserved. Cancellation before uninstall does not remove private data.
 
-Only the fixed application-owned child of native `{localappdata}` may be cleaned;
-no settings/inventory/export path is accepted as a deletion target. The uninstaller
-pins the entire ancestor chain and root using Windows directory handles that deny
-writes/rename/deletion, and rejects reparse/redirected roots. Native Inno `DelTree` removes
-descendant reparse entries without traversing their targets. Handles are released
-before the final nonrecursive root removal. Busy files or failed safety checks
-produce a cleanup error instead of broadening the deletion target. Exported voice
-profiles in external folders and shared caches/runtimes are preserved.
+The worker captures an immutable plan before private deletion and verifies its
+physical roots, bounded relative paths, hashes and independent file identities.
+Native code then preflights the current payload through exclusive deletion handles;
+Inno removes its bootstrap/uninstall metadata only after success. Failed deletion
+keeps resumable records and exits nonzero. The app refuses startup during pending
+uninstall. No shared Microsoft component or HF cache is removed.
+
+See [per-user maintenance and uninstall](installer-maintenance.md) for inventories,
+obsolete-file cleanup, replay, logs, failure boundaries and targeted validation.
+This replaces the earlier whole-private-root `DelTree` policy. Legacy 0.1.0 files
+without independently verified ownership remain preserved, with no directory sweep.
 
 ## Redistribution and validation limits
 
@@ -139,10 +144,10 @@ packages also include complete, original source archives and a source-availabili
 notice. Permissive alternatives are used for dual-licensed packages; the app's MIT
 license is unchanged. See [third-party notices](../THIRD_PARTY_NOTICES.md).
 
-The first setup EXE is **unsigned**. Configure publisher code signing and timestamping
-for setup and its uninstaller before public distribution; unsigned downloads can
-trigger Windows SmartScreen. No certificate, signing key, commit, tag, or release
-is created by this build. Windows 10 support/security updates are Microsoft's
+The 0.2.0 setup EXE is **unsigned**; unsigned downloads can trigger Windows
+SmartScreen. Publisher code signing and timestamping are not configured. No
+certificate, signing key, commit, tag, or release is created by the build.
+Windows 10 support/security updates are Microsoft's
 responsibility; the minimum API version is not a promise of support for every
 out-of-support Windows edition.
 
@@ -152,17 +157,11 @@ upgrade, uninstall/data deletion, Windows N servicing/UAC/reboot, and launch on 
 clean machine must still be verified in disposable Windows VMs. None is exercised
 on the development PC. No application GUI is launched by packaging.
 
-Build verification on 2026-10-29: application Release build (zero warnings/errors),
-self-contained Release publish, and Inno compilation succeeded. Eight existing
-mocked model-discovery check groups passed, including the version-derived
-User-Agent assertion; ModelRemovalChecks built without warnings/errors after its
-linked-source update. Read-only native CPU/media checks passed on this machine,
-all 18 MPL source archive hashes matched, and missing/tampered runtime packaging
-inputs were rejected before publish. The native import audit covered 183 files
-with imports and found no VC++ 14 runtime imports. The built EXE is unsigned.
+Current package verification and user-reported installation/uninstall/scrolling
+results are recorded in the [0.2.0 verification record](releases/0.2.0.md).
 
 Official references: [Windows App SDK self-contained deployment](https://learn.microsoft.com/windows/apps/package-and-deploy/self-contained-deploy/deploy-self-contained-apps),
 [Visual C++ redistribution](https://learn.microsoft.com/cpp/windows/redistributing-visual-cpp-files),
 [Media Feature Pack](https://support.microsoft.com/windows/experience/platform-variants/media-feature-pack-for-windows-n),
 [DISM capabilities](https://learn.microsoft.com/windows-hardware/manufacture/desktop/dism-capabilities-package-servicing-command-line-options),
-[Inno reparse-safe DelTree](https://jrsoftware.org/ishelp/topic_isxfunc_deltree.htm).
+[Inno event lifecycle](https://jrsoftware.org/ishelp/topic_scriptevents.htm).

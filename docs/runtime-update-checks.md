@@ -30,10 +30,10 @@ documented in [model setup](model-setup.md).
 
 The update status displays **Checking for updates...**, **Up to date**,
 **Update available: vX.X.X**, **Unable to check for updates**, or
-**No compatible Windows runtime available**. **Check for updates** reruns the
-existing service asynchronously, replacing `RuntimeUpdateCheck` with the new task.
+**No compatible Windows runtime available**. The shared Settings **Check for updates**
+reruns this service, replacing `RuntimeUpdateCheck`, then checks installed models.
 The button is disabled during checks and overlapping requests are ignored. When
-a compatible newer release is detected, it becomes **Update**. Clicking opens a
+a compatible newer release is detected, the runtime card shows **Update**. Clicking opens a
 native confirmation showing the installed and available release tags, with Cancel
 as the default action. Detecting a release never changes the installed version
 label or claims that an update was installed. Startup never downloads or installs.
@@ -47,7 +47,7 @@ record; the existing model-setup persistence and runtime diagnostics are preserv
 
 The only release-metadata endpoint is
 `https://api.github.com/repos/kyutai-labs/pocket-tts/releases/latest`, using
-`HttpClient`, a `PocketTTSStudioLite/0.1.0` user agent, GitHub's JSON media type,
+`HttpClient`, a `PocketTTSStudioLite/0.2.0` user agent, GitHub's JSON media type,
 API version `2022-11-28`, and a 10-second network deadline. There is no connectivity
 probe, retry, release-history lookup, authentication, or asset download. Closing
 the window cancels the check. Responses are limited to 2 MiB.
@@ -95,6 +95,12 @@ rejects traversal paths, links, duplicates, extra files, and oversized entries.
 Only fixed application-controlled leaf filenames are written. Entry SHA-256 values
 are calculated from the verified archive streams and checked against installed
 files. Temporary files stay under the application's local runtime staging folder.
+Before payload creation, a durable operation record identifies the exact temporary
+layout. The update lock stays held through checked nonrecursive cleanup. Startup
+retries recorded interrupted downloads, preserving unknown/unrecorded content.
+See [temporary download recovery](temporary-download-recovery.md). This recovery
+does not itself remove installed runtime versions. Separate hash-bound retirement
+records handle verified inactive versions, as described in [runtime cleanup](runtime-cleanup.md).
 
 The candidate must be a Windows x64 PE executable on the existing supported
 Windows x64/AVX2/FMA platform. Model-free `--version` and `export-voice --help`
@@ -120,8 +126,9 @@ failure restores the previous identity by atomic rename. Cancellation is honored
 up to this commit; the short commit/rollback section then finishes without being
 interrupted. Services resolve the active runtime from this identity and verify its
 receipt/hashes. Each export captures one verified executable, so switching the
-identity cannot change an in-flight export. Previous runtime directories and the
-app-relative bundled v4.0.1 fallback are never modified or deleted. If filesystem
+identity cannot change an in-flight export. After successful activation, verified
+inactive downloaded runtime versions are retired through [recoverable cleanup](runtime-cleanup.md).
+The active version and app-relative bundled v4.0.1 baseline remain protected. If filesystem
 failure prevents automatic identity recovery, the error identifies that failure
 and retained records/files remain available for manual recovery after closing the
 application. Ordinary integrity failures do not silently rewrite the identity.
@@ -150,7 +157,8 @@ updates for the runtime-selection dependencies and was not built or run.
 
 Manual installation testing is left to the user: confirm the dialog and release
 tags, Cancel during download/validation, try offline/failed downloads, and check a
-successful installation retains previous files and refreshes the displayed tag.
+successful installation removes verified inactive downloaded versions and refreshes
+the displayed tag, while busy/unknown content is preserved with pending cleanup.
 Then verify existing local model selection and offline voice export with the new
 runtime. Interactive progress, real archive layouts, filesystem failure recovery,
 and end-to-end inference remain unverified.

@@ -12,6 +12,9 @@ public sealed record PocketTtsModelSetupEntry(string Name, PocketTtsModelInstall
     public bool CanActivate => State == PocketTtsModelInstallationState.InstalledVerified && IsRuntimeSupported == true;
     public bool CanInstall { get; init; }
     public bool CanRemove => InventoryIdentity is not null;
+    public string? UpdateCommit { get; init; }
+    public string? Revision { get; init; }
+    public bool CanUpdate => CanActivate && InventoryIdentity is not null && UpdateCommit is not null;
     public bool CanManage => CanInstall || CanRemove;
     public string UpdateStatusText { get; init; } = "";
     public string UpdateStatusDetail { get; init; } = "";
@@ -187,7 +190,7 @@ public sealed class PocketTtsModelSetupService
                     _ = model.LocalConfiguration();
                     return new(registered.Alias, PocketTtsModelInstallationState.InstalledVerified,
                         "Registered installation files and voice-cloning configuration verified locally.")
-                    { Model = model, InventoryIdentity = inventoryIdentity, InventoryFilesVerified = true };
+                    { Model = model, Revision = registered.Revision, InventoryIdentity = inventoryIdentity, InventoryFilesVerified = true };
                 }
                 return compatible == false
                     ? new(registered.Alias, PocketTtsModelInstallationState.Incompatible,

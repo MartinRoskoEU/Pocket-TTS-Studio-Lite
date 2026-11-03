@@ -1,7 +1,7 @@
 # Anonymous model update checks
 
-Settings > Models offers **Check for updates** in place of Refresh models.
-Clicking it first reruns the existing local runtime/model verification without
+Settings offers one shared **Check for updates** action for runtime and models.
+After the runtime release comparison, it reruns local runtime/model verification without
 activation or navigation, then asynchronously compares registered installed
 models with the official `kyutai/pocket-tts` main revision. The header and each
 registered model being processed show **Checking for updates...**. The button
@@ -161,3 +161,10 @@ No authentication, model downloads, or live execution of the automatic checker
 was performed during development. Startup responsiveness, interval skipping, new
 installations, manual override, failures, identity invalidation, and cross-instance
 concurrency remain for manual checking.
+
+## Installing a detected update
+
+Checks remain read-only. An identity-matching available result for a verified,
+runtime-compatible installed model enables the separate **Update** action.
+See [explicit model updates](model-updates.md) for confirmation, verification,
+OAuth, manifest commit and superseded-file cleanup.

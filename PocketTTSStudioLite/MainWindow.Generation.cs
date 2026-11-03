@@ -17,7 +17,7 @@ public sealed partial class MainWindow
     private void InitializeGeneration() => AppWindow.Closing += GenerationWindow_Closing;
 
     private bool CanGenerate => !_generationCleanupBlocked && !_generating && !_closing && !_closingAfterGeneration && !_exportRunning && !_pickerOpen &&
-        !_checkingModels && !_selectingExportModel && !_referenceLoading && !_referenceBindingInvalid &&
+        !_checkingUpdates && !_checkingModels && !_selectingExportModel && !_referenceLoading && !_referenceBindingInvalid &&
         _referenceContextTask is null && !_modelInstalling && !_modelRemoving && !RuntimeUpdateBusy &&
         !_closingAfterReferenceAudio && !_closingAfterExport && _preparedReference is not null &&
         _modelSetup?.ActiveModel is not null && !string.IsNullOrWhiteSpace(CloningTextInput.Text);

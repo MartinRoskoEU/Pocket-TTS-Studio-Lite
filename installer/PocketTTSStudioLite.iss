@@ -12,6 +12,13 @@
   #error OutputDir is required. Use installer/build.ps1.
 #endif
 
+#ifndef PackageManifestHash
+  #error PackageManifestHash is required.
+#endif
+#ifndef SupportHash
+  #error SupportHash is required.
+#endif
+
 [Setup]
 AppId={{336B2514-DBF3-4566-9302-95EE5D2D7DD3}
 AppName=Pocket TTS Studio lite
@@ -40,9 +47,14 @@ CloseApplications=yes
 RestartApplications=no
 UsePreviousAppDir=yes
 DisableDirPage=auto
+AllowUNCPath=no
+AllowNetworkDrive=no
+AllowRootDirectory=no
 UsePreviousTasks=yes
 DisableProgramGroupPage=yes
-UninstallLogMode=append
+UninstallLogMode=overwrite
+SetupLogging=yes
+UninstallLogging=yes
 
 [Tasks]
 Name: "startmenuicon"; Description: "Create a Start Menu shortcut"
@@ -50,7 +62,8 @@ Name: "desktopicon"; Description: "Create a Desktop shortcut"; Flags: unchecked
 
 [Files]
 Source: "{#SupportDir}\InstallerSupport.dll"; Flags: dontcopy
-Source: "{#PayloadDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "{#PayloadDir}\*"; DestDir: "{app}"; Excludes: "maintenance\InstallerSupport.dll"; Flags: ignoreversion recursesubdirs createallsubdirs uninsneveruninstall
+Source: "{#SupportDir}\InstallerSupport.dll"; DestDir: "{app}\maintenance"; Flags: ignoreversion
 
 [Icons]
 ; PrivilegesRequired=lowest makes {group} the current user's Start Menu group.
@@ -149,18 +162,6 @@ begin
   Result := AddBackslash(ExpandConstant('{localappdata}')) + 'PocketTTSStudioLite';
 end;
 
-function InitializeUninstall: Boolean;
-begin
-  Result := True;
-  RemovePrivateData := False;
-  // Silent uninstall always preserves data; it cannot provide explicit consent.
-  if not UninstallSilent and DirExists(PrivateDataPath) then
-    RemovePrivateData := MsgBox('Also permanently delete all private Pocket TTS Studio lite data?' + #13#10#13#10 +
-      PrivateDataPath + #13#10#13#10 +
-      'This includes downloaded models, runtimes, settings and caches. Exported profiles in external folders and shared Microsoft runtimes will be preserved.' + #13#10#13#10 +
-      'Choose No to keep this data.', mbConfirmation, MB_YESNO or MB_DEFBUTTON2) = IDYES;
-end;
-
 function PinDirectoryChain(Path: String; var Handles: TDirectoryHandles): Boolean;
 var
   Parent: String;
@@ -182,31 +183,4 @@ begin
     ((Attributes and FileAttributeReparsePoint) = 0);
 end;
 
-function DeleteOwnedPrivateData: Boolean;
-var
-  Handles: TDirectoryHandles;
-  I: Integer;
-begin
-  Result := False;
-  // Pin every ancestor and the exact owned root against rename/replacement.
-  // Reject redirected roots; native DelTree does not traverse descendant reparse points.
-  try
-    if not PinDirectoryChain(PrivateDataPath, Handles) then exit;
-    // Keep the root pinned while deleting contents, not the root itself.
-    Result := DelTree(AddBackslash(PrivateDataPath) + '*', False, True, True);
-  finally
-    for I := GetArrayLength(Handles) - 1 downto 0 do CloseHandle(Handles[I]);
-  end;
-  // RemoveDir never follows a link recursively, including after handles close.
-  if Result then Result := RemoveDir(PrivateDataPath);
-end;
-
-procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
-begin
-  if (CurUninstallStep = usPostUninstall) and RemovePrivateData then
-  begin
-    if not DeleteOwnedPrivateData then
-      MsgBox('Some private data could not be safely removed. Close all Pocket TTS processes and inspect this directory manually:' + #13#10 + PrivateDataPath + #13#10#13#10 +
-        'Linked/redirected roots and files in use are preserved for safety.', mbError, MB_OK);
-  end;
-end;
+#include "maintenance.iss"

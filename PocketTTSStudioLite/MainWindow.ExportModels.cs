@@ -8,7 +8,7 @@ public sealed partial class MainWindow
     private readonly PocketTtsModelSelectionSettings _modelSelectionSettings = new();
     private bool _synchronizingExportModels, _selectingExportModel;
 
-    private bool ExportModelSelectionBusy => _generating || _closingAfterGeneration || _checkingModels || _selectingExportModel || _modelInstalling || _modelRemoving ||
+    private bool ExportModelSelectionBusy => _checkingUpdates || _generating || _closingAfterGeneration || _checkingModels || _selectingExportModel || _modelInstalling || _modelRemoving ||
         RuntimeUpdateBusy || _exportRunning || _pickerOpen || _closingAfterExport || _closingAfterReferenceAudio || _closing;
 
     private void RefreshExportModelChoices()

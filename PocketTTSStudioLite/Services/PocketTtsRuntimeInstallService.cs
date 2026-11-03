@@ -29,6 +29,8 @@ public sealed class PocketTtsRuntimeInstallService
         IProgress<PocketTtsRuntimeInstallProgress>? progress, CancellationToken cancellationToken)
     {
         string? staging = null;
+        FileStream? updateLock = null;
+        PocketTtsDownloadOperation? download = null;
         PocketTtsRuntimeInstallResult result;
         using var deadline = new CancellationTokenSource(TimeSpan.FromMinutes(15));
         using var operation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, deadline.Token);
@@ -37,8 +39,9 @@ public sealed class PocketTtsRuntimeInstallService
         {
             PocketTtsCliService.EnsureSupportedProcessor();
             PocketTtsRuntimeStore.EnsureDirectory(PocketTtsRuntimeStore.LocalDataPath);
-            using var updateLock = new FileStream(Path.Combine(PocketTtsRuntimeStore.LocalDataPath, "runtime-update.lock"),
+            updateLock = new FileStream(Path.Combine(PocketTtsRuntimeStore.LocalDataPath, "runtime-update.lock"),
                 FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
+            PocketTtsModelStore.ValidateFile(updateLock.Name, updateLock.SafeFileHandle, localData: true);
             var previous = await PocketTtsRuntimeStore.ReadVerifiedActiveAsync(token).ConfigureAwait(false);
             if (confirmed.Status != PocketTtsRuntimeUpdateStatus.UpdateAvailable || confirmed.Asset is null ||
                 confirmed.InstalledReleaseTag != previous.Identity.ReleaseVersion)
@@ -62,8 +65,8 @@ public sealed class PocketTtsRuntimeInstallService
             string archiveHash = digestMatch.Groups["hash"].Value.ToUpperInvariant();
 
             PocketTtsRuntimeStore.EnsureDirectory(PocketTtsRuntimeStore.StagingPath);
-            staging = Path.Combine(PocketTtsRuntimeStore.StagingPath, Guid.NewGuid().ToString("N"));
-            PocketTtsRuntimeStore.EnsureDirectory(staging);
+            download = await PocketTtsDownloadOperation.BeginRuntimeAsync(token).ConfigureAwait(false);
+            staging = download.DirectoryPath;
             string zipPath = Path.Combine(staging, "runtime.zip");
             await DownloadAsync(asset, zipPath, progress, token).ConfigureAwait(false);
             progress?.Report(new("Verifying the downloaded ZIP SHA-256…"));
@@ -110,6 +113,14 @@ public sealed class PocketTtsRuntimeInstallService
             progress?.Report(new("Activating the verified runtime…", CanCancel: false));
             await PocketTtsRuntimeStore.ActivateAsync(previous, executable, token).ConfigureAwait(false);
             result = new(true, false, $"Pocket TTS Runtime {tag} was installed and activated.", tag);
+            try
+            {
+                progress?.Report(new("Removing previous runtime files...", CanCancel: false));
+                var cleanup = await PocketTtsRuntimeStore.CleanupInactiveAsync(CancellationToken.None).ConfigureAwait(false);
+                if (cleanup.CleanupPending) throw new IOException("Inactive runtime cleanup is pending.");
+            }
+            catch (Exception)
+            { result = result with { CleanupIncomplete = true, Message = result.Message + " Previous runtime cleanup could not finish. Close applications using Pocket TTS and restart the application to retry cleanup." }; }
         }
         catch (OperationCanceledException)
         { result = new(false, cancellationToken.IsCancellationRequested, cancellationToken.IsCancellationRequested
@@ -128,12 +139,16 @@ public sealed class PocketTtsRuntimeInstallService
         catch (Exception)
         { result = new(false, false, "The runtime update could not complete. The previous runtime files have been retained."); }
 
-        if (staging is not null)
+        try
         {
-            try { PocketTtsRuntimeStore.DeleteStagingDirectory(staging); }
-            catch (Exception) { result = result with { Message = result.Message + " Temporary update files could not be removed.", CleanupIncomplete = true }; }
+            if (download is not null)
+            {
+                try { _ = await download.CleanupAsync().ConfigureAwait(false); }
+                catch (Exception) { result = result with { Message = result.Message + " Temporary update cleanup is recorded and will be retried at startup. Unverified or busy files were preserved.", CleanupIncomplete = true }; }
+            }
+            return result;
         }
-        return result;
+        finally { updateLock?.Dispose(); }
     }
 
     private async Task DownloadAsync(PocketTtsRuntimeUpdateAsset asset, string destination,

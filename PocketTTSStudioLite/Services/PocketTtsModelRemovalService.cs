@@ -8,6 +8,10 @@ public sealed record PocketTtsModelRemovalResult(bool Removed, bool Cancelled, l
 /// <summary>Inventory-first removal and durable, reference-checked private cleanup. Never scans external caches.</summary>
 public sealed class PocketTtsModelRemovalService
 {
+    // Caller already holds model-install.lock; do not reacquire it after update commit.
+    internal Task<PocketTtsModelRemovalResult> CleanupAfterUpdateAsync(CancellationToken token) =>
+        RunAsync(null, null, null, token, installationLocked: true);
+
     public Task<PocketTtsModelRemovalResult> RemoveAsync(string alias, string expectedIdentity,
         IProgress<PocketTtsModelInstallProgress>? progress = null, CancellationToken cancellationToken = default) =>
         Task.Run(() => RunAsync(alias, expectedIdentity, progress, cancellationToken), cancellationToken);
@@ -25,7 +29,7 @@ public sealed class PocketTtsModelRemovalService
         }, cancellationToken);
 
     private static async Task<PocketTtsModelRemovalResult> RunAsync(string? alias, string? expectedIdentity,
-        IProgress<PocketTtsModelInstallProgress>? progress, CancellationToken cancellationToken)
+        IProgress<PocketTtsModelInstallProgress>? progress, CancellationToken cancellationToken, bool installationLocked = false)
     {
         bool removed = false;
         long deleted = 0;
@@ -38,7 +42,7 @@ public sealed class PocketTtsModelRemovalService
             cancellationToken.ThrowIfCancellationRequested();
             // Same order as installation: installation lock, then model writer, then inventory/update writer.
             PocketTtsRuntimeStore.EnsureDirectory(PocketTtsRuntimeStore.LocalDataPath);
-            using var installationLock = new FileStream(Path.Combine(PocketTtsRuntimeStore.LocalDataPath, "model-install.lock"),
+            using var installationLock = installationLocked ? null : new FileStream(Path.Combine(PocketTtsRuntimeStore.LocalDataPath, "model-install.lock"),
                 FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
             using var operations = PocketTtsModelStore.TryAcquireWrite();
             await PocketTtsNativeOperation.EnsureQuiescentAsync(cancellationToken).ConfigureAwait(false);

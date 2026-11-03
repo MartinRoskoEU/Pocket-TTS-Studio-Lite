@@ -4,12 +4,35 @@ All notable changes to Pocket TTS Studio lite will be documented in this file.
 
 The changelog is maintained manually and updated for each release.
 
-## [Unreleased]
+## [0.2.0] - 2026-11-03
+
+### Added
+
+- Explicit updates for supported installed voice-cloning models, with confirmed
+  pinned revisions, verified downloads and preserved model selection.
+- One Settings action to check for model and runtime updates. Downloads remain
+  separate, user-confirmed actions.
+- Recovery of recorded interrupted model/runtime downloads and pending cleanup.
+
+### Changed
+
+- Retire verified superseded model files and inactive downloaded runtimes after
+  successful updates, preserving shared model blobs and the active/bundled runtime.
+- Improve per-user reinstall and uninstall with verified payload inventories,
+  resumable maintenance and a choice to retain or remove verified private data.
+  Unknown files, external profiles, shared caches and uninventoried legacy extras
+  remain preserved.
 
 ### Fixed
 
-- Align the window title with Out Loud using a 16-pixel left margin, removing the
-  extra image column and gap while preserving title styling and caption behavior.
+- Prevent the installer from overwriting an already loaded bootstrap DLL during
+  preparation, avoiding the Windows file-in-use error.
+- Remove completed uninstall recovery records and release maintenance locks before
+  final empty-directory cleanup.
+- Preserve the visible position of Voice Cloning content with native WinUI scroll
+  anchoring when previews and notifications appear; remove forced notification
+  scrolling and retain keyboard focus scrolling.
+- Align the window title with consistent left spacing and native caption behavior.
 
 ## [0.1.0] - 2026-10-29
 

@@ -20,7 +20,7 @@ public sealed partial class MainWindow
     private async void RemoveModel_Click(object sender, RoutedEventArgs args)
     {
         if (sender is not Button { DataContext: PocketTtsModelSetupEntry { CanRemove: true } entry } ||
-            _closing || _modelRemoving || _modelInstalling || _checkingModels || _checkingModelUpdates ||
+            _closing || _checkingUpdates || _modelRemoving || _modelInstalling || _checkingModels || _checkingModelUpdates ||
             RuntimeUpdateBusy || _exportRunning || _pickerOpen || _closingAfterExport) { return; }
         _modelRemoving = true;
         using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(_setupCancellation.Token);
