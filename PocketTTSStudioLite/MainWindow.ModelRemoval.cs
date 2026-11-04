@@ -50,8 +50,17 @@ public sealed partial class MainWindow
                 Content = $"Remove {entry.Name}?\n\nIts registration and private files no longer used by other installed models will be removed permanently. Shared files and exported voice profiles will be kept. An active model will be deactivated.",
                 PrimaryButtonText = "Remove", CloseButtonText = "Cancel", DefaultButton = ContentDialogButton.Close,
             };
-            using var cancelDialog = cancellationToken.Register(() => DispatcherQueue.TryEnqueue(dialog.Hide));
-            var confirmation = await dialog.ShowAsync();
+            ContentDialogResult confirmation;
+            bool dialogVisible = true;
+            try
+            {
+                using var cancelDialog = cancellationToken.Register(() => DispatcherQueue.TryEnqueue(() =>
+                {
+                    if (dialogVisible) { dialog.Hide(); }
+                }));
+                confirmation = await dialog.ShowAsync();
+            }
+            finally { dialogVisible = false; }
             if (confirmation != ContentDialogResult.Primary || cancellationToken.IsCancellationRequested)
             { result = new(false, true, 0, 0, false, $"Removal of {entry.Name} cancelled. No model files or registration were changed."); }
             else

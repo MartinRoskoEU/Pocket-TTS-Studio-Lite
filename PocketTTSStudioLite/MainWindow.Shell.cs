@@ -78,8 +78,16 @@ public sealed partial class MainWindow
 
     private double WindowScale() => GetDpiForWindow(WinRT.Interop.WindowNative.GetWindowHandle(this)) / 96.0;
 
-    private void UpdateTitleBarInsets() =>
-        TitleBarRightInset.Width = new GridLength(AppWindow.TitleBar.RightInset / WindowScale());
+    private void UpdateTitleBarInsets()
+    {
+        if (AppWindow.Presenter is OverlappedPresenter { State: OverlappedPresenterState.Minimized }) { return; }
+        uint dpi = GetDpiForWindow(WinRT.Interop.WindowNative.GetWindowHandle(this));
+        int inset = AppWindow.TitleBar.RightInset;
+        // Windowing can report negative insets while minimizing or restoring.
+        // Retain the last valid width until usable geometry is available again.
+        if (dpi == 0 || inset < 0) { return; }
+        TitleBarRightInset.Width = new GridLength(inset / (dpi / 96.0));
+    }
 
     private void AvailableModelsPanel_SizeChanged(object sender, SizeChangedEventArgs args)
     {

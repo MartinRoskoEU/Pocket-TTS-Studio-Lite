@@ -38,6 +38,16 @@ public sealed partial class MainWindow
         RenderExportControls();
         _generationTask = GenerateCoreAsync(reference, model, text, cancellation.Token);
         try { await _generationTask; }
+        catch (Exception)
+        {
+            bool stopped = await StopGenerationAfterFailureAsync();
+            if (!_closing)
+            {
+                ShowVoiceExportNotification(stopped ? VoiceExportNotificationKind.Error : VoiceExportNotificationKind.Warning,
+                    "Generation failed", stopped ? "The preview task could not finish. The local runtime has been stopped; try generating the preview again."
+                    : "The preview task could not finish and runtime cleanup could not be confirmed. Review the retained operation metadata before retrying.");
+            }
+        }
         finally
         {
             _generationTask = null; _generationCancellation = null; _generating = false;
@@ -122,13 +132,22 @@ public sealed partial class MainWindow
         args.Cancel = true;
         _closingAfterGeneration = true;
         _generationCancellation?.Cancel();
-        if (_generationTask is { } task) { await task; }
+        bool generationFailed = false;
+        try { if (_generationTask is { } task) { await task; } }
+        catch (Exception) { generationFailed = true; }
         bool stopped = await StopGenerationAfterFailureAsync();
         _generating = false; _generationTask = null;
         _closingAfterGeneration = false;
         if (!stopped)
         {
             ShowVoiceExportNotification(VoiceExportNotificationKind.Warning, "Generation cleanup incomplete", "The local runtime could not be confirmed stopped. Review the retained operation metadata before retrying model operations.");
+            RenderExportControls();
+            return;
+        }
+        if (generationFailed)
+        {
+            ShowVoiceExportNotification(VoiceExportNotificationKind.Error, "Generation failed", "The preview task could not finish. The local runtime has been stopped. Review the error before closing again.");
+            RenderExportControls();
             return;
         }
         Close();

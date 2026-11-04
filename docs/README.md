@@ -1,6 +1,6 @@
 # Documentation
 
-Documentation for **Pocket TTS Studio lite 0.2.0**.
+Documentation for **Pocket TTS Studio lite 0.2.1**.
 
 ## Using the application
 
@@ -27,6 +27,8 @@ Documentation for **Pocket TTS Studio lite 0.2.0**.
 - [Build and installer packaging](windows-installer.md#version-and-build)
 - [Runtime integration and pinned metadata](pocket-tts-runtime.md)
 - [Model discovery](model-discovery.md)
+- [0.2.1 release notes](releases/0.2.1-notes.md)
+- [0.2.1 verification record](releases/0.2.1.md)
 - [0.2.0 release notes](releases/0.2.0-notes.md)
 - [0.2.0 verification record](releases/0.2.0.md)
 - [Changelog](../CHANGELOG.md)

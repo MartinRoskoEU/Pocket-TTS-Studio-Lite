@@ -137,8 +137,17 @@ public sealed partial class MainWindow
                     Content = $"{Path.GetFileName(destination)} already exists. Overwrite it?\n\nThe existing file will be replaced only after the new export completes successfully.",
                     PrimaryButtonText = "Overwrite", CloseButtonText = "Cancel", DefaultButton = ContentDialogButton.Close,
                 };
-                using var cancelDialog = cancellation.Token.Register(() => DispatcherQueue.TryEnqueue(dialog.Hide));
-                var confirmation = await dialog.ShowAsync();
+                ContentDialogResult confirmation;
+                bool dialogVisible = true;
+                try
+                {
+                    using var cancelDialog = cancellation.Token.Register(() => DispatcherQueue.TryEnqueue(() =>
+                    {
+                        if (dialogVisible) { dialog.Hide(); }
+                    }));
+                    confirmation = await dialog.ShowAsync();
+                }
+                finally { dialogVisible = false; }
                 cancellation.Token.ThrowIfCancellationRequested();
                 if (_closing || _closingAfterReferenceAudio) { return; }
                 if (confirmation != ContentDialogResult.Primary)

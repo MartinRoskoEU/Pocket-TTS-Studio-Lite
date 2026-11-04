@@ -4,6 +4,15 @@ All notable changes to Pocket TTS Studio lite will be documented in this file.
 
 The changelog is maintained manually and updated for each release.
 
+## [0.2.1] - 2026-11-04
+
+### Fixed
+
+- Fixed a crash when minimizing or restoring the application.
+- Fixed cancellation errors in model-removal and voice-profile overwrite dialogs.
+- Improved error handling when a speech preview fails or the application is
+  closed during preview generation.
+
 ## [0.2.0] - 2026-11-03
 
 ### Added

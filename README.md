@@ -4,7 +4,7 @@ A Windows desktop application for cloning voices with Kyutai Pocket TTS.
 Import a reference recording, generate a local speech preview, and export a native
 `.safetensors` voice profile.
 
-**Version 0.2.0** · [Download](https://github.com/MartinRoskoEU/Pocket-TTS-Studio-Lite/releases) · [Changelog](CHANGELOG.md) · [Documentation](docs/README.md)
+**Version 0.2.1** · [Download](https://github.com/MartinRoskoEU/Pocket-TTS-Studio-Lite/releases) · [Changelog](CHANGELOG.md) · [Documentation](docs/README.md)
 
 ## Features
 
@@ -18,9 +18,8 @@ Import a reference recording, generate a local speech preview, and export a nati
 - Install for the current Windows user, with a choice to retain or remove verified
   private data during uninstall.
 
-Version 0.2.0 adds model updates, cleanup of superseded downloaded runtimes,
-interrupted-download recovery, improved reinstall/uninstall maintenance, and stable
-page positioning when generation results appear. See the [release notes](docs/releases/0.2.0-notes.md).
+Version 0.2.1 fixes window minimization crashes and improves dialog cancellation
+and preview-generation error handling. See the [release notes](docs/releases/0.2.1-notes.md).
 
 ## Requirements
 
@@ -37,7 +36,7 @@ Feature Pack on Windows N may require administrator approval.
 
 ## Installation and use
 
-1. Download `PocketTTSStudioLite-0.2.0-win-x64-Setup.exe` from
+1. Download `PocketTTSStudioLite-0.2.1-win-x64-Setup.exe` from
    [GitHub Releases](https://github.com/MartinRoskoEU/Pocket-TTS-Studio-Lite/releases)
    and run it. The current installer is unsigned.
 2. In **Settings**, install a supported model. Complete Hugging Face authorization
