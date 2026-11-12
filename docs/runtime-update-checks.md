@@ -162,3 +162,25 @@ the displayed tag, while busy/unknown content is preserved with pending cleanup.
 Then verify existing local model selection and offline voice export with the new
 runtime. Interactive progress, real archive layouts, filesystem failure recovery,
 and end-to-end inference remain unverified.
+
+## Repair a missing runtime
+
+Settings shows **Repair runtime** when the selected executable is missing and its
+saved identity is valid. Confirm the repair to download that exact official release,
+verify GitHub's archive SHA-256, match the saved executable hash and validate the
+voice-export contract. Downloaded runtimes also require their saved installation
+receipt and matching installed license. Existing executables are preserved.
+
+The repair uses the runtime-operation lock, recorded download staging and a
+same-directory rename to publish the restored executable. Cancellation is supported
+before publication. The application verifies the restored runtime and refreshes
+model readiness. Saved runtime identity and model-selection preferences are retained.
+Repair requires internet access.
+
+## Application releases
+
+The application checks the latest published stable Pocket TTS Studio lite release
+at startup and through **Check for updates** in Settings. A newer version offers
+**View release**, which opens its GitHub release page in the default browser.
+Downloads and installation are initiated by the user. Failed or offline checks
+appear in the application card and do not interrupt local voice cloning.

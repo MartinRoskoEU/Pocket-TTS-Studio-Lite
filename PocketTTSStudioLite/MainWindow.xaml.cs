@@ -1,6 +1,7 @@
 using Microsoft.UI.Xaml;
 using System.Net.Http;
 using PocketTTSStudioLite.Services.Authentication;
+using PocketTTSStudioLite.Services;
 
 namespace PocketTTSStudioLite;
 
@@ -20,6 +21,8 @@ public sealed partial class MainWindow : Window
         InitializeRuntimeUpdates();
         InitializeModelInstallation();
         InitializeModelSetup();
+        ApplicationVersionText.Text = $"Installed release: {ApplicationInfo.Version}";
+        _ = CheckApplicationUpdatesAsync();
     }
 
     private void MainWindow_Closed(object sender, WindowEventArgs args)

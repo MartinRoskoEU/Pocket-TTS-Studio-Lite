@@ -76,6 +76,33 @@ internal static class PocketTtsModelStore
         { throw new InvalidDataException("A private model path resolves to a different location."); }
     }
 
+    internal static IDisposable PinParentDirectories(string path)
+    {
+        var pins = new DirectoryPins();
+        try
+        {
+            var directories = new Stack<string>();
+            for (string? current = Path.GetDirectoryName(Path.GetFullPath(path)); current is not null; current = Path.GetDirectoryName(current))
+                directories.Push(current);
+            foreach (string directory in directories)
+            {
+                var handle = CreateFile(directory, 0x80, 3, IntPtr.Zero, 3, 0x02200000, IntPtr.Zero);
+                pins.Handles.Add(handle);
+                if (handle.IsInvalid || !GetFileInformationByHandle(handle, out var info) ||
+                    (info.Attributes & (uint)FileAttributes.ReparsePoint) != 0 || (info.Attributes & (uint)FileAttributes.Directory) == 0)
+                    throw new IOException("The runtime destination directory could not be locked.");
+            }
+            return pins;
+        }
+        catch { pins.Dispose(); throw; }
+    }
+
+    private sealed class DirectoryPins : IDisposable
+    {
+        internal List<SafeFileHandle> Handles { get; } = [];
+        public void Dispose() { foreach (var handle in Handles) handle.Dispose(); }
+    }
+
     // Readers may coexist. Publication/registration writers wait asynchronously for readers, including exports.
     internal static Task<FileStream> AcquireReadAsync(CancellationToken cancellationToken) => AcquireAsync(write: false, cancellationToken);
     internal static Task<FileStream> AcquireWriteAsync(CancellationToken cancellationToken) => AcquireAsync(write: true, cancellationToken);

@@ -40,7 +40,7 @@ UninstallDisplayIcon={app}\PocketTTSStudioLite.exe
 UninstallDisplayName=Pocket TTS Studio lite
 LicenseFile=..\LICENSE
 OutputDir={#OutputDir}
-OutputBaseFilename=PocketTTSStudioLite-{#AppVersion}-win-x64-Setup
+OutputBaseFilename=PocketTTSStudioLite-Setup
 Compression=lzma2
 SolidCompression=yes
 CloseApplications=yes
@@ -62,7 +62,8 @@ Name: "desktopicon"; Description: "Create a Desktop shortcut"; Flags: unchecked
 
 [Files]
 Source: "{#SupportDir}\InstallerSupport.dll"; Flags: dontcopy
-Source: "{#PayloadDir}\*"; DestDir: "{app}"; Excludes: "maintenance\InstallerSupport.dll"; Flags: ignoreversion recursesubdirs createallsubdirs uninsneveruninstall
+#include SupportDir + "\maintenance-files.iss"
+Source: "{#PayloadDir}\*"; DestDir: "{app}"; Excludes: "maintenance\InstallerSupport.dll"; Flags: ignoreversion recursesubdirs createallsubdirs uninsneveruninstall solidbreak
 Source: "{#SupportDir}\InstallerSupport.dll"; DestDir: "{app}\maintenance"; Flags: ignoreversion
 
 [Icons]
@@ -70,12 +71,6 @@ Source: "{#SupportDir}\InstallerSupport.dll"; DestDir: "{app}\maintenance"; Flag
 Name: "{group}\Pocket TTS Studio lite"; Filename: "{app}\PocketTTSStudioLite.exe"; WorkingDir: "{app}"; Tasks: startmenuicon
 Name: "{group}\Uninstall Pocket TTS Studio lite"; Filename: "{uninstallexe}"; Tasks: startmenuicon
 Name: "{userdesktop}\Pocket TTS Studio lite"; Filename: "{app}\PocketTTSStudioLite.exe"; WorkingDir: "{app}"; Tasks: desktopicon
-
-[InstallDelete]
-; Apply unchecked choices to shortcuts left by an earlier installation as well.
-Type: files; Name: "{group}\Pocket TTS Studio lite.lnk"; Tasks: not startmenuicon
-Type: files; Name: "{group}\Uninstall Pocket TTS Studio lite.lnk"; Tasks: not startmenuicon
-Type: files; Name: "{userdesktop}\Pocket TTS Studio lite.lnk"; Tasks: not desktopicon
 
 [Code]
 type
@@ -94,6 +89,8 @@ function CompatibleCpu: Boolean;
   external 'CompatibleCpu@files:InstallerSupport.dll stdcall setuponly';
 function MediaFoundationAvailable: Boolean;
   external 'MediaFoundationAvailable@files:InstallerSupport.dll stdcall setuponly';
+function InstallMediaFeaturePack(Window: HWND): Integer;
+  external 'InstallMediaFeaturePack@files:InstallerSupport.dll stdcall setuponly';
 function GetFileAttributesW(Name: String): Cardinal;
   external 'GetFileAttributesW@kernel32.dll stdcall';
 function CreateFileW(Name: String; Access, Share: Cardinal; Security: NativeInt;
@@ -106,6 +103,7 @@ var
   RemovePrivateData: Boolean;
   MediaFeatureInstalled: Boolean;
   MediaFeatureAttempted: Boolean;
+  MediaFeatureInstalling: Boolean;
 
 function InitializeSetup: Boolean;
 begin
@@ -135,9 +133,15 @@ begin
   MediaFeatureAttempted := True;
   // This Windows optional feature is the only prerequisite requiring elevation.
   // DISM obtains the signed, OS-matched Microsoft payload from Windows Update.
-  if not ShellExec('runas', ExpandConstant('{sys}\dism.exe'),
-    '/Online /Add-Capability /CapabilityName:Media.MediaFeaturePack~~~~0.0.1.0 /NoRestart',
-    '', SW_SHOWNORMAL, ewWaitUntilTerminated, ExitCode) then
+  MediaFeatureInstalling := True;
+  WizardForm.CancelButton.Enabled := False;
+  try
+    ExitCode := InstallMediaFeaturePack(WizardForm.Handle);
+  finally
+    MediaFeatureInstalling := False;
+    WizardForm.CancelButton.Enabled := True;
+  end;
+  if ExitCode = -1 then
   begin
     Result := 'The Microsoft Media Feature Pack could not be installed (administrator approval may have been declined). No application files were installed. Install the Windows optional feature and retry.';
     exit;

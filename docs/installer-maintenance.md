@@ -136,9 +136,12 @@ can remain when it contains unknown content or unrecorded directories. Failed
 or torn metadata publications (`*.tmp`) are preserved for review instead of being
 silently overwritten.
 Unrecorded reference-audio fallback sessions also remain preserved; filenames alone
-do not establish ownership of those older temporary files. Cancelled preparation can retain a bound upgrade plan in
-the selected directory; resuming the same package is supported. These records
-are not rollback archives. No promise of a downgrade to 0.1.0 is added.
+do not establish ownership of those older temporary files. Cancelled or failed preparation before payload publication removes its verified
+new upgrade plan and the empty directories created by that attempt. Existing
+application directories and earlier recovery plans retain their ownership.
+Interrupted payload publication can be resumed with the same package. The upgrade
+plan retains inventory metadata, and the current attempt's original-file backups
+provide cancellation recovery.
 
 ## Targeted verification
 
@@ -169,3 +172,72 @@ corrected uninstall behavior following the Sandbox test report. Separate upgrade
 silent-retention, interruption/retry and unknown-file preservation scenarios were
 not individually reconfirmed in the final review. Source/fixture verification and
 user-reported live results are recorded separately.
+
+## Responsive maintenance and cancellation
+
+The native bootstrap starts the maintenance worker directly and processes window
+messages while waiting for its real process handle. File hashing runs on a worker
+thread while the installer or uninstaller continues processing window messages.
+Input pins remain held until each operation finishes.
+
+Temporary worker files and their manifest are listed before the application
+payload, with independent solid-compression blocks. Setup processes progress and
+cancellation events before and after each temporary-file extraction and between
+worker-file checks. This also covers preparation before the helper starts.
+See [Inno temporary-file extraction](https://jrsoftware.org/ishelp/topic_isxfunc_extracttemporaryfile.htm)
+and [compression boundaries](https://jrsoftware.org/ishelp/topic_filessection.htm#solidbreak).
+
+During installation preparation, **Cancel** requests cooperative cancellation.
+The helper observes the request between file checks and before publishing an
+upgrade plan. Setup waits for the helper and releases its pins before closing.
+During application file copying, Cancel confirms cancellation and allows Inno to
+stop its installation pass. The maintenance helper then restores the payload from
+the current attempt's rollback record. Final receipt publication and cleanup finish
+before Setup closes. The Finish button occupies the rightmost footer position.
+
+The uninstaller processes messages during worker execution and native payload
+hashing. Its close and cancel controls remain unavailable during removal so the
+existing completion records can be finalized before the window closes.
+
+## Cleaning up cancelled preparation
+
+The helper records the target directory identity, whether it created that directory,
+its maintenance-directory ownership, the previous installation receipt and the exact
+identity/hash of a newly published upgrade plan in a temporary preparation record.
+The installer waits for preparation to finish before requesting cleanup on
+cancellation or failure. A final exit handler also handles preparation that completed
+before another prerequisite prevented installation.
+
+Cleanup verifies the recorded target, takes the maintenance operation lock and
+requires the installed receipt to match the snapshot. It deletes only the new plan
+with its recorded file identity and hash. It removes each newly created directory
+only when empty and with its original directory identity. A pre-existing destination,
+existing maintenance directory, earlier upgrade plan, changed receipt, unknown files
+and private model/runtime/settings storage retain their existing ownership.
+
+During file publication, a cancelled or failed installation uses payload rollback
+before finishing preparation cleanup. Completed file publication proceeds through
+the normal installation receipt and recovery workflow. Cleanup failures are
+reported while the preparation record is retained for a retry within the same setup
+session. This cleanup has no authority over leftovers from an earlier setup session.
+
+## Cancellation during file copying
+
+Preparation records every package destination, its original file identity and hash,
+and the original directory set. Existing destination files are copied to a uniquely
+created `maintenance/rollback-<guid>` directory and verified before copying begins.
+The record is saved in that directory as well as Setup's temporary directory.
+
+Cancel remains available during Inno's file-copy pass. After confirmation, Setup
+stops copying and performs its own cancellation processing. The maintenance helper
+then restores backed-up original contents and removes newly published files whose
+hashes match this package. Changed or unknown files stop recovery and retain the
+backups with an error. The original installation receipt is refreshed with restored
+file identities while keeping its package identity and original content hashes.
+Empty directories introduced by the attempt are removed after payload recovery.
+Pre-existing directories and private application data retain their ownership.
+
+The current operation lock is released before Inno cancellation and reacquired by
+the recovery helper. Successful installation retires the verified backups after
+receipt publication. Deselected shortcut deletion runs after successful maintenance,
+so cancelling during file copying also preserves previously existing shortcuts.

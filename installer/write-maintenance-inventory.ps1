@@ -20,14 +20,16 @@ foreach ($directory in $directories) {
     $lines.Add(('Type: dirifempty; Name: "{app}\' + $directory + '"'))
 }
 $lines.Add('Type: dirifempty; Name: "{app}"')
-$lines.Add('[Files]')
+$temporaryFiles = [Collections.Generic.List[string]]::new()
+$temporaryFiles.Add('[Files]')
 $worker = Join-Path $Support 'worker'
 $workerFiles = @(Get-ChildItem -LiteralPath $worker -Recurse -File | Sort-Object FullName)
 for ($index = 0; $index -lt $workerFiles.Count; $index++) {
     $relative = $workerFiles[$index].FullName.Substring($worker.Length + 1)
-    $lines.Add(('Source: "{#SupportDir}\worker\' + $relative + '"; DestName: "maintenance-temp-' + $index + '"; Flags: dontcopy'))
+    $temporaryFiles.Add(('Source: "{#SupportDir}\worker\' + $relative + '"; DestName: "maintenance-temp-' + $index + '"; Flags: dontcopy solidbreak'))
 }
-$lines.Add('Source: "{#PayloadDir}\maintenance\package.json"; DestName: "maintenance-package.json"; Flags: dontcopy')
+$temporaryFiles.Add('Source: "{#PayloadDir}\maintenance\package.json"; DestName: "maintenance-package.json"; Flags: dontcopy solidbreak')
+[IO.File]::WriteAllLines((Join-Path $Support 'maintenance-files.iss'), $temporaryFiles, $encoding)
 $lines.Add('[Code]')
 $lines.Add('procedure MaterializeWorker;')
 $lines.Add('begin')

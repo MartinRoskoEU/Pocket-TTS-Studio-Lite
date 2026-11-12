@@ -275,9 +275,35 @@
                                 <StackPanel x:Name="UpdateCheckActions" Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
                                     <ProgressRing x:Name="UpdateChecksProgress" Width="16" Height="16" IsActive="False" Visibility="Collapsed" />
                                     <Button x:Name="CheckModelsButton" Content="Check for updates" Height="36" Padding="16,0" FontSize="14"
-                                            ToolTipService.ToolTip="Check runtime and installed model updates." Click="CheckModels_Click" />
+                                            ToolTipService.ToolTip="Check application, runtime and installed model updates." Click="CheckModels_Click" />
                                 </StackPanel>
                             </Grid>
+
+                            <Border Padding="20" CornerRadius="8" HorizontalAlignment="Stretch"
+                                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                                <Grid RowSpacing="16">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <StackPanel Spacing="4">
+                                        <TextBlock Text="Pocket TTS Studio lite" FontSize="17" FontWeight="SemiBold" />
+                                        <TextBlock x:Name="ApplicationVersionText" FontSize="13" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    </StackPanel>
+                                    <Grid Grid.Row="1" ColumnSpacing="16">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock x:Name="ApplicationUpdateStatusText" Text="Checking for updates..." FontSize="16" FontWeight="SemiBold"
+                                                   TextWrapping="Wrap" VerticalAlignment="Center" Style="{StaticResource RuntimeNeutralTextStyle}"
+                                                   AutomationProperties.Name="Application update status" AutomationProperties.LiveSetting="Polite" />
+                                        <Button x:Name="ApplicationReleaseButton" Grid.Column="1" Content="View release" Visibility="Collapsed"
+                                                Height="36" Padding="16,0" FontSize="14" Click="ApplicationReleaseButton_Click" />
+                                    </Grid>
+                                </Grid>
+                            </Border>
 
                             <Border Padding="20" CornerRadius="8" HorizontalAlignment="Stretch"
                                     Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
@@ -335,6 +361,8 @@
                                         </Grid>
                                         <StackPanel x:Name="RuntimeUpdateActions" Grid.Column="1" Orientation="Horizontal" Spacing="8"
                                                     HorizontalAlignment="Right" VerticalAlignment="Center">
+                                            <Button x:Name="RuntimeRepairButton" Content="Repair runtime" IsEnabled="False" Visibility="Collapsed"
+                                                    Height="36" Padding="16,0" FontSize="14" Click="RuntimeRepairButton_Click" />
                                             <Button x:Name="RuntimeUpdateButton" Content="Update" IsEnabled="False" Visibility="Collapsed"
                                                     Height="36" Padding="16,0" FontSize="14" Click="RuntimeUpdateButton_Click" />
                                             <Button x:Name="RuntimeCancelUpdateButton" Content="Cancel" Visibility="Collapsed"

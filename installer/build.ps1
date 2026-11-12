@@ -151,7 +151,7 @@ if ($licenseCount -lt 10) { throw 'Dependency license collection is incomplete.'
 $inventory = & (Join-Path $PSScriptRoot 'write-maintenance-inventory.ps1') -Payload $payload -Support $support -Version $version
 
 Invoke-Checked $IsccPath @('--quiet-progress', "--define=AppVersion=$version", "--define=PayloadDir=$payload", "--define=SupportDir=$support", "--define=OutputDir=$output", "--define=PackageManifestHash=$($inventory.ManifestHash)", "--define=SupportHash=$($inventory.SupportHash)", (Join-Path $PSScriptRoot 'PocketTTSStudioLite.iss'))
-$installer = Join-Path $output "PocketTTSStudioLite-$version-win-x64-Setup.exe"
+$installer = Join-Path $output 'PocketTTSStudioLite-Setup.exe'
 $checksum = Get-FileHash -LiteralPath $installer -Algorithm SHA256
 [IO.File]::WriteAllText($installer + '.sha256', ($checksum.Hash.ToLowerInvariant() + '  ' + [IO.Path]::GetFileName($installer) + "`n"), [Text.UTF8Encoding]::new($false))
 Get-Item $installer | Select-Object FullName, Length

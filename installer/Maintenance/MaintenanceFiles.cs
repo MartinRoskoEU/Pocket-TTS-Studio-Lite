@@ -61,14 +61,14 @@ internal static class MaintenanceFiles
             ?? throw new InvalidDataException("Invalid maintenance metadata.");
     }
 
-    internal static async Task WriteAsync<T>(string root, string relative, T value)
+    internal static async Task WriteAsync<T>(string root, string relative, T value, bool replace = true)
     {
         string path = Resolve(root, relative), temporary = path + ".tmp";
         if (Path.Exists(temporary)) throw new InvalidOperationException("Interrupted metadata publication requires review: " + temporary);
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         PocketTtsModelStore.ValidatePath(path, ownedRoot: root);
         await PocketTtsRuntimeStore.WriteJsonAsync(temporary, value, default);
-        if (File.Exists(path)) File.Move(temporary, path, overwrite: true); else File.Move(temporary, path);
+        File.Move(temporary, path, overwrite: replace);
     }
 
     internal static List<OwnedDirectory> Directories(string root, IEnumerable<OwnedFile> files)

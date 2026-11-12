@@ -1,14 +1,43 @@
 // Installer-only baseline-x64 checks. Do not compile this helper with /arch:AVX2.
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+#include <shellapi.h>
 #include <intrin.h>
 #include <bcrypt.h>
 #include <string>
 #include <vector>
 #include <algorithm>
+#include <future>
+#include <chrono>
 #pragma comment(lib, "bcrypt.lib")
+#pragma comment(lib, "user32.lib")
+#pragma comment(lib, "shell32.lib")
 
 namespace {
+HWND maintenanceWindow{};
+void PumpMessages() {
+    MSG message{};
+    while (PeekMessageW(&message, nullptr, 0, 0, PM_REMOVE)) {
+        if (message.message == WM_QUIT) {
+            PostQuitMessage(static_cast<int>(message.wParam));
+            break;
+        }
+        if (!IsDialogMessageW(maintenanceWindow, &message)) {
+            TranslateMessage(&message);
+            DispatchMessageW(&message);
+        }
+    }
+}
+int WaitForMaintenanceProcess(HANDLE process) {
+    DWORD status;
+    do {
+        status = WaitForSingleObject(process, 30);
+        PumpMessages();
+    } while (status == WAIT_TIMEOUT);
+    if (status != WAIT_OBJECT_0) WaitForSingleObject(process, INFINITE);
+    DWORD exitCode{};
+    return status == WAIT_OBJECT_0 && GetExitCodeProcess(process, &exitCode) ? static_cast<int>(exitCode) : -1;
+}
 struct Guard { std::wstring path; HANDLE handle; BY_HANDLE_FILE_INFORMATION info; };
 std::wstring ownedRoot;
 std::vector<Guard> directories;
@@ -45,7 +74,7 @@ bool Regular(HANDLE handle, const std::wstring& path) {
     if (actual.starts_with(L"\\\\?\\")) actual.erase(0, 4);
     return _wcsicmp(actual.c_str(), path.c_str()) == 0;
 }
-bool Hash(HANDLE handle, const wchar_t* expected) {
+bool HashCore(HANDLE handle, const wchar_t* expected) {
     if (!expected || wcslen(expected) != 64) return false;
     BCRYPT_ALG_HANDLE algorithm{}; BCRYPT_HASH_HANDLE hash{};
     if (BCryptOpenAlgorithmProvider(&algorithm, BCRYPT_SHA256_ALGORITHM, nullptr, 0) < 0) return false;
@@ -66,6 +95,14 @@ bool Hash(HANDLE handle, const wchar_t* expected) {
         BCryptDestroyHash(hash);
     }
     BCryptCloseAlgorithmProvider(algorithm, 0); return result;
+}
+bool Hash(HANDLE handle, const wchar_t* expected) {
+    if (!IsWindow(maintenanceWindow)) return HashCore(handle, expected);
+    auto worker = std::async(std::launch::async, [=] { return HashCore(handle, expected); });
+    while (worker.wait_for(std::chrono::milliseconds(20)) != std::future_status::ready) PumpMessages();
+    bool result = worker.get();
+    PumpMessages();
+    return result;
 }
 bool Pin(const std::wstring& path) {
     if (std::any_of(directories.begin(), directories.end(), [&](const Guard& guard) { return _wcsicmp(guard.path.c_str(), path.c_str()) == 0; })) return true;
@@ -97,6 +134,68 @@ bool Relative(const wchar_t* relative, std::wstring& path) {
     }
     path = ownedRoot + L"\\" + value; return true;
 }
+}
+
+extern "C" __declspec(dllexport) void __stdcall SetMaintenanceWindow(HWND window) noexcept {
+    maintenanceWindow = window;
+}
+extern "C" __declspec(dllexport) BOOL __stdcall VerifyMaintenanceFile(const wchar_t* path, const wchar_t* expected) noexcept {
+    HANDLE file = CreateFileW(path, GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_FLAG_OPEN_REPARSE_POINT, nullptr);
+    if (file == INVALID_HANDLE_VALUE) return FALSE;
+    bool result = false;
+    try { result = Regular(file, path) && Hash(file, expected); } catch (...) { }
+    CloseHandle(file);
+    return result;
+}
+extern "C" __declspec(dllexport) int __stdcall RunMaintenanceProcess(const wchar_t* executable,
+    const wchar_t* parameters, const wchar_t* directory) noexcept {
+    PROCESS_INFORMATION process{};
+    try {
+        STARTUPINFOW startup{};
+        startup.cb = sizeof(startup);
+        startup.dwFlags = STARTF_USESHOWWINDOW;
+        startup.wShowWindow = SW_HIDE;
+        std::wstring command = L"\"" + std::wstring(executable) + L"\" " + parameters;
+        if (!CreateProcessW(executable, command.data(), nullptr, nullptr, FALSE, CREATE_NO_WINDOW,
+            nullptr, directory, &startup, &process)) return -1;
+        CloseHandle(process.hThread);
+        process.hThread = nullptr;
+        int exitCode = WaitForMaintenanceProcess(process.hProcess);
+        CloseHandle(process.hProcess);
+        return exitCode;
+    } catch (...) {
+        // Input files and pins outlive the child, including exceptional teardown.
+        if (process.hProcess) { WaitForSingleObject(process.hProcess, INFINITE); CloseHandle(process.hProcess); }
+        return -1;
+    }
+}
+
+extern "C" __declspec(dllexport) int __stdcall InstallMediaFeaturePack(HWND window) noexcept {
+    SHELLEXECUTEINFOW launch{};
+    HWND previousWindow = maintenanceWindow;
+    try {
+        wchar_t systemDirectory[MAX_PATH]{};
+        UINT length = GetSystemDirectoryW(systemDirectory, MAX_PATH);
+        if (!length || length >= MAX_PATH) return -1;
+        std::wstring executable = std::wstring(systemDirectory) + L"\\dism.exe";
+        launch.cbSize = sizeof(launch);
+        launch.fMask = SEE_MASK_NOCLOSEPROCESS | SEE_MASK_NOASYNC;
+        launch.hwnd = window;
+        launch.lpVerb = L"runas";
+        launch.lpFile = executable.c_str();
+        launch.lpParameters = L"/Online /Add-Capability /CapabilityName:Media.MediaFeaturePack~~~~0.0.1.0 /NoRestart";
+        launch.nShow = SW_HIDE;
+        if (!ShellExecuteExW(&launch) || !launch.hProcess) return -1;
+        maintenanceWindow = window;
+        int code = WaitForMaintenanceProcess(launch.hProcess);
+        CloseHandle(launch.hProcess);
+        maintenanceWindow = previousWindow;
+        return code;
+    } catch (...) {
+        if (launch.hProcess) { WaitForSingleObject(launch.hProcess, INFINITE); CloseHandle(launch.hProcess); }
+        maintenanceWindow = previousWindow;
+        return -1;
+    }
 }
 
 extern "C" __declspec(dllexport) BOOL __stdcall BeginOwnedDelete(const wchar_t* root) noexcept {

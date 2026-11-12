@@ -5,6 +5,13 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using System.Diagnostics;
 
+if (args is ["--maintenance-child"])
+{
+    await Task.Delay(150);
+    Environment.ExitCode = 7;
+    return;
+}
+
 if (args.Length != 1) throw new Exception("Pass the freshly built InstallerSupport.dll path.");
 string sandbox = Path.Combine(Path.GetTempPath(), "PocketTTSStudioLite-MaintenanceChecks-" + Guid.NewGuid().ToString("N"));
 Directory.CreateDirectory(sandbox);
@@ -41,6 +48,15 @@ var commit = Marshal.GetDelegateForFunctionPointer<Commit>(NativeLibrary.GetExpo
 var cancel = Marshal.GetDelegateForFunctionPointer<Cancel>(NativeLibrary.GetExport(module, "CancelOwnedDelete"));
 try
 {
+    passed += ResponsiveMaintenanceChecks.Run(module, sandbox);
+    Fresh();
+    Directory.CreateDirectory(app);
+    bool cancellationObserved = false;
+    try { await maintenance.PrepareAsync(Hash("package"), package.Files, () => throw new OperationCanceledException()); }
+    catch (OperationCanceledException) { cancellationObserved = true; }
+    Check(cancellationObserved && !File.Exists(Path.Combine(app, "maintenance", "upgrade-plan.json")), "Cancelled preparation published an upgrade plan.");
+    passed++;
+
     Fresh(); await Install();
     File.WriteAllText(Path.Combine(app, "unknown.txt"), "user");
     await maintenance.PrepareAsync(Hash("package2"));

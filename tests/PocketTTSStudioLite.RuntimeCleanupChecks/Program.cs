@@ -220,7 +220,116 @@ try
     }
     passed++;
 
-    Console.WriteLine($"PASS: {passed} targeted runtime cleanup/install/recovery checks; fixture storage, mocked HTTP/CLI, no live runtime execution or user data.");
+    // Repair the selected release using its existing receipt, even when latest checks
+    // cannot verify the missing executable. Exercise failures before any publication.
+    Fresh();
+    using (var handler = new ReleaseHandler(File.ReadAllBytes(Environment.ProcessPath!)))
+    using (var http = new HttpClient(handler))
+    {
+        var previous = await Seed("v4.3.0", "previous executable");
+        await Activate(previous);
+        var service = new PocketTtsRuntimeInstallService(http, http);
+        var update = await new PocketTtsRuntimeUpdateService(http).CheckAsync();
+        Check((await service.InstallAsync(update)).Succeeded, "Repair fixture installation failed.");
+        string executable = PocketTtsRuntimeStore.ResolveActivePath();
+        string identity = File.ReadAllText(PocketTtsModelSetupService.RuntimeIdentityPath);
+        string selection = Path.Combine(PocketTtsRuntimeStore.LocalDataPath, "model-selection.json");
+        File.WriteAllText(selection, "saved model selection fixture");
+        var target = PocketTtsRuntimeInstallService.ReadRepairTarget();
+        string fingerprint = PocketTtsRuntimeInstallService.RepairIdentity(target);
+        var existing = await service.RepairAsync(fingerprint);
+        Check(!existing.Succeeded && File.Exists(executable), "Repair overwrote an existing runtime.");
+        passed++;
+        File.Delete(executable);
+        var stale = await service.RepairAsync(fingerprint + "changed");
+        Check(!stale.Succeeded && !File.Exists(executable), "Stale repair confirmation was accepted.");
+        passed++;
+        handler.CorruptDownload = true;
+        var corrupt = await service.RepairAsync(fingerprint);
+        Check(!corrupt.Succeeded && !File.Exists(executable), "Corrupt repair download was published.");
+        passed++;
+        handler.CorruptDownload = false;
+        using (var cancellation = new CancellationTokenSource())
+        {
+            cancellation.Cancel();
+            var cancelled = await service.RepairAsync(fingerprint, cancellationToken: cancellation.Token);
+            Check(cancelled.Cancelled && !File.Exists(executable), "Repair cancellation published an executable.");
+        }
+        passed++;
+        string license = Path.Combine(Path.GetDirectoryName(executable)!, "LICENSE");
+        byte[] originalLicense = File.ReadAllBytes(license);
+        File.WriteAllText(license, "changed license");
+        var changedLicense = await service.RepairAsync(fingerprint);
+        Check(!changedLicense.Succeeded && !File.Exists(executable), "Repair accepted a changed installed license.");
+        File.WriteAllBytes(license, originalLicense);
+        passed++;
+        var repaired = await service.RepairAsync(fingerprint);
+        Check(repaired.Succeeded && !repaired.CleanupIncomplete, "Missing downloaded runtime repair failed: " + repaired.Message);
+        Check(File.ReadAllText(PocketTtsModelSetupService.RuntimeIdentityPath) == identity &&
+            File.ReadAllText(selection) == "saved model selection fixture", "Repair changed saved identities or model selection.");
+        Check((await PocketTtsRuntimeStore.ReadVerifiedActiveAsync(default)).Identity == target.Identity,
+            "Repaired executable does not match the saved identity.");
+        passed++;
+    }
+    // A fresh installation may lose its bundled executable before saving identity.
+    Fresh();
+    byte[] baselineExecutable = File.ReadAllBytes(Environment.ProcessPath!);
+    string bundledLicense = Path.Combine(Path.GetDirectoryName(PocketTtsRuntimeStore.BundledPath)!, "LICENSE");
+    Check(!File.Exists(bundledLicense), "Preserve an existing fixture-output license.");
+    try
+    {
+        PocketTtsModelSetupService.ValidatedRuntimeSha256 = Hash(baselineExecutable);
+        File.Delete(PocketTtsRuntimeStore.BundledPath);
+        File.WriteAllText(bundledLicense, "fixture license");
+        using var handler = new ReleaseHandler(baselineExecutable, "v4.0.1");
+        using var http = new HttpClient(handler);
+        var target = PocketTtsRuntimeInstallService.ReadRepairTarget();
+        var repaired = await new PocketTtsRuntimeInstallService(http, http).RepairAsync(PocketTtsRuntimeInstallService.RepairIdentity(target));
+        Check(repaired.Succeeded && (await PocketTtsRuntimeStore.ReadVerifiedActiveAsync(default)).Identity == target.Identity,
+            "Bundled runtime repair without saved identity failed: " + repaired.Message);
+        passed++;
+    }
+    finally
+    {
+        File.WriteAllBytes(PocketTtsRuntimeStore.BundledPath, baseline);
+        PocketTtsModelSetupService.ValidatedRuntimeSha256 = Hash(baseline);
+        File.Delete(bundledLicense);
+    }
+
+    foreach (var example in new[] { ("v0.2.2", true), ("v0.2.1", false), ("v0.2.0", false), ("v0.10.0", true) })
+    {
+        using var release = JsonDocument.Parse(JsonSerializer.Serialize(new { tag_name = example.Item1, draft = false, prerelease = false }));
+        var result = ApplicationUpdateService.Evaluate(release.RootElement, "0.2.1");
+        Check(result.Available == example.Item2 && (result.ReleaseUrl is null ||
+            result.ReleaseUrl.AbsoluteUri == "https://github.com/MartinRoskoEU/Pocket-TTS-Studio-Lite/releases/tag/" + example.Item1), "Incorrect application update result.");
+        passed++;
+    }
+    foreach (string tag in new[] { "v0.3.0-rc.1", "../evil", "v01.2.3", "invalid" })
+    {
+        using var release = JsonDocument.Parse(JsonSerializer.Serialize(new { tag_name = tag, draft = false, prerelease = false }));
+        try { ApplicationUpdateService.Evaluate(release.RootElement, "0.2.1"); throw new Exception("Invalid application release accepted."); }
+        catch (InvalidDataException) { }
+        passed++;
+    }
+    foreach (bool draft in new[] { false, true })
+    {
+        using var release = JsonDocument.Parse(JsonSerializer.Serialize(new { tag_name = "v0.3.0", draft, prerelease = !draft }));
+        try { ApplicationUpdateService.Evaluate(release.RootElement, "0.2.1"); throw new Exception("Unpublished or prerelease application accepted."); }
+        catch (InvalidDataException) { }
+        passed++;
+    }
+
+    foreach (bool offline in new[] { false, true })
+    {
+        using var handler = new ApplicationFailureHandler(offline);
+        using var http = new HttpClient(handler);
+        var result = await new ApplicationUpdateService(http).CheckAsync(default);
+        Check(!result.Available && result.ReleaseUrl is null && result.Message.Contains("Unable"),
+            "Application check failure offered a release or escaped the optional checker.");
+        passed++;
+    }
+
+    Console.WriteLine($"PASS: {passed} targeted runtime cleanup/install/repair and application update checks; fixture storage, mocked HTTP/CLI, no live runtime execution or user data.");
 }
 finally
 {
@@ -243,11 +352,13 @@ internal static class Native
 
 internal sealed class ReleaseHandler : HttpMessageHandler
 {
-    private const string Tag = "v4.4.0", Name = "pocket-tts-4.4.0-x86_64-pc-windows-msvc.zip";
+    private readonly string Tag, Name;
     private readonly byte[] _archive;
     internal bool CorruptDownload;
-    internal ReleaseHandler(byte[] executable)
+    internal ReleaseHandler(byte[] executable, string tag = "v4.4.0")
     {
+        Tag = tag;
+        Name = $"pocket-tts-{tag[1..]}-x86_64-pc-windows-msvc.zip";
         using var buffer = new MemoryStream();
         using (var zip = new ZipArchive(buffer, ZipArchiveMode.Create, leaveOpen: true))
         {
@@ -260,7 +371,7 @@ internal sealed class ReleaseHandler : HttpMessageHandler
     {
         if (request.RequestUri!.Host == "api.github.com")
         {
-            var metadata = new { tag_name = Tag, assets = new[] { new { id = 42, name = Name, state = "uploaded", size = _archive.Length,
+            var metadata = new { tag_name = Tag, draft = false, prerelease = false, assets = new[] { new { id = 42, name = Name, state = "uploaded", size = _archive.Length,
                 digest = "sha256:" + Convert.ToHexString(SHA256.HashData(_archive)), browser_download_url = $"https://github.com/kyutai-labs/pocket-tts/releases/download/{Tag}/{Name}" } } };
             return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(JsonSerializer.Serialize(metadata), Encoding.UTF8, "application/json") });
         }
@@ -268,4 +379,11 @@ internal sealed class ReleaseHandler : HttpMessageHandler
         if (CorruptDownload) download[^1] ^= 1;
         return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(download) });
     }
+}
+
+internal sealed class ApplicationFailureHandler(bool offline) : HttpMessageHandler
+{
+    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken token) =>
+        offline ? throw new HttpRequestException("Offline fixture") : Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+        { Content = new StringContent("malformed release metadata", Encoding.UTF8, "application/json") });
 }

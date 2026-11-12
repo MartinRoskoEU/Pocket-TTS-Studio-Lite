@@ -86,7 +86,7 @@ public sealed partial class MainWindow
                 ModelSetupStatusText.Text = "Model setup could not complete. Check the runtime files and private storage permissions, then retry.";
                 ModelSetupStatusText.Visibility = Visibility.Visible;
                 RenderRuntimeReadiness(false);
-                RuntimeVersionText.Text = "Installed release unavailable";
+                await RefreshInstalledRuntimeReleaseAsync();
                 _modelSetup.ApplyCheckedModels(Array.Empty<PocketTtsModelSetupEntry>());
                 SetModelRows(Array.Empty<PocketTtsModelSetupEntry>());
                 ModelList.Visibility = Visibility.Collapsed;

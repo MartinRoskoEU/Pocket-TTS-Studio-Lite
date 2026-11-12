@@ -16,7 +16,8 @@ public sealed partial class MainWindow
         try
         {
             // Both existing checkers report their own failures; neither installs anything.
-            await CheckRuntimeUpdatesAsync(forceRefresh: true);
+            await CheckApplicationUpdatesAsync();
+            if (!_closing) await CheckRuntimeUpdatesAsync(forceRefresh: true);
             if (!_closing) await CheckInstalledModelUpdatesAsync();
         }
         finally
@@ -28,7 +29,7 @@ public sealed partial class MainWindow
 
     private void RenderUpdateCheckState()
     {
-        bool checking = _checkingUpdates || _checkingRuntimeUpdates || _checkingModelUpdates;
+        bool checking = _checkingUpdates || _checkingRuntimeUpdates || _checkingModelUpdates || _checkingApplicationUpdates;
         CheckModelsButton.IsEnabled = !checking && !_checkingModels && !_modelInstalling && !_modelRemoving && !RuntimeUpdateBusy &&
             !_exportRunning && !_pickerOpen && !_generating && !_selectingExportModel && !_closing;
         UpdateChecksProgress.IsActive = checking && !_closing;

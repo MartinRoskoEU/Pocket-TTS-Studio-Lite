@@ -6,6 +6,6 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="..\..\PocketTTSStudioLite\Services\ApplicationInfo.cs;..\..\PocketTTSStudioLite\Services\PocketTtsRuntimeStore.cs;..\..\PocketTTSStudioLite\Services\PocketTtsModelStore.cs;..\..\PocketTTSStudioLite\Services\PocketTtsDownloadOperation.cs;..\..\PocketTTSStudioLite\Services\PocketTtsRuntimeUpdateService.cs;..\..\PocketTTSStudioLite\Services\PocketTtsRuntimeUpdateResult.cs;..\..\PocketTTSStudioLite\Services\PocketTtsRuntimeInstallService.cs" Link="Services\%(Filename)%(Extension)" />
+    <Compile Include="..\..\PocketTTSStudioLite\Services\ApplicationInfo.cs;..\..\PocketTTSStudioLite\Services\PocketTtsRuntimeStore.cs;..\..\PocketTTSStudioLite\Services\PocketTtsModelStore.cs;..\..\PocketTTSStudioLite\Services\PocketTtsDownloadOperation.cs;..\..\PocketTTSStudioLite\Services\PocketTtsRuntimeUpdateService.cs;..\..\PocketTTSStudioLite\Services\PocketTtsRuntimeUpdateResult.cs;..\..\PocketTTSStudioLite\Services\PocketTtsRuntimeInstallService.cs;..\..\PocketTTSStudioLite\Services\PocketTtsRuntimeRepair.cs;..\..\PocketTTSStudioLite\Services\ApplicationUpdateService.cs" Link="Services\%(Filename)%(Extension)" />
   </ItemGroup>
 </Project>

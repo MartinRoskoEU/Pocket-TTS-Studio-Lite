@@ -6,7 +6,7 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="..\..\installer\Maintenance\MaintenanceFiles.cs;..\..\installer\Maintenance\InstallationMaintenance.cs;..\..\installer\Maintenance\PrivateDataCleanup.cs" Link="Maintenance\%(Filename)%(Extension)" />
+    <Compile Include="..\..\installer\Maintenance\MaintenanceFiles.cs;..\..\installer\Maintenance\InstallationMaintenance.cs;..\..\installer\Maintenance\InstallationPreparation.cs;..\..\installer\Maintenance\InstallationRollback.cs;..\..\installer\Maintenance\PrivateDataCleanup.cs" Link="Maintenance\%(Filename)%(Extension)" />
     <Compile Include="..\PocketTTSStudioLite.RuntimeCleanupChecks\FixturePlatform.cs" Link="FixturePlatform.cs" />
     <Compile Include="..\..\PocketTTSStudioLite\Services\ApplicationInfo.cs;..\..\PocketTTSStudioLite\Services\PocketTtsRuntimeStore.cs;..\..\PocketTTSStudioLite\Services\PocketTtsModelStore.cs;..\..\PocketTTSStudioLite\Services\PocketTtsDownloadOperation.cs;..\..\PocketTTSStudioLite\Services\PocketTtsRuntimeUpdateService.cs;..\..\PocketTTSStudioLite\Services\PocketTtsRuntimeUpdateResult.cs;..\..\PocketTTSStudioLite\Services\PocketTtsModelInventoryService.cs;..\..\PocketTTSStudioLite\Services\PocketTtsModelInventoryEntry.cs;..\..\PocketTTSStudioLite\Services\PocketTtsModelInstallPlan.cs;..\..\PocketTTSStudioLite\Services\PocketTtsInstalledModel.cs;..\..\PocketTTSStudioLite\Services\PocketTtsNativeOperation.cs" Link="Services\%(Filename)%(Extension)" />
   </ItemGroup>

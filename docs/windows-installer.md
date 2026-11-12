@@ -16,8 +16,8 @@ bar and window title display the built release version.
 `installer/build.ps1` evaluates the application project's MSBuild `Version`, checks
 the published EXE metadata, and passes `--define=AppVersion=...` to Inno Setup.
 The `.iss` deliberately fails without this parameter. Installer file/product
-metadata, wizard display, Windows uninstall DisplayVersion, and the setup EXE
-filename therefore use the same value.
+metadata, wizard display and Windows uninstall DisplayVersion therefore use the
+same value. The downloadable filename is stable across releases.
 
 Build on Windows x64 with the .NET 10 SDK, Windows SDK/project build prerequisites,
 Visual Studio C++ x64 build tools, and the official Inno Setup **7 or later** compiler:
@@ -45,12 +45,25 @@ Each run uses fresh staging under `artifacts/installer/staging/<guid>/`, publish
 with `Properties/PublishProfiles/installer-x64.pubxml`, builds the CPU/maintenance
 DLL and self-contained console worker, audits native direct/delayed imports,
 collects licenses, generates payload/worker inventories and runs ISCC.
-Final output: `release/PocketTTSStudioLite-<Version>-win-x64-Setup.exe` at the
+Final output: `release/PocketTTSStudioLite-Setup.exe` at the
 repository root. The build passes this directory to Inno Setup's native `OutputDir`
 configuration; the compiler writes the EXE there directly. Staging, tools, existing
 outputs and diagnostic files under `artifacts/` are preserved, including
 `native-imports.csv`. Both `release/` and `artifacts/` remain ignored by Git; only
 installer sources and required notices belong in source control.
+
+## Release downloads
+
+Upload `PocketTTSStudioLite-Setup.exe` and `PocketTTSStudioLite-Setup.exe.sha256`
+with every GitHub release. Use these same asset names for subsequent releases.
+The installer carries its product version in its Windows metadata and setup UI.
+
+The stable download links follow GitHub's latest published release.
+
+- [Download installer](https://github.com/MartinRoskoEU/Pocket-TTS-Studio-Lite/releases/latest/download/PocketTTSStudioLite-Setup.exe)
+- [Download SHA-256 checksum](https://github.com/MartinRoskoEU/Pocket-TTS-Studio-Lite/releases/latest/download/PocketTTSStudioLite-Setup.exe.sha256)
+
+Earlier release records retain the filenames of the artifacts published at that time.
 
 ## Installation and prerequisites
 

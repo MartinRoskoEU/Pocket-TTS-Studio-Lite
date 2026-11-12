@@ -4,7 +4,7 @@ A Windows desktop application for cloning voices with Kyutai Pocket TTS.
 Import a reference recording, generate a local speech preview, and export a native
 `.safetensors` voice profile.
 
-**Version 0.2.1** · [Download](https://github.com/MartinRoskoEU/Pocket-TTS-Studio-Lite/releases) · [Changelog](CHANGELOG.md) · [Documentation](docs/README.md)
+**Version 0.2.2** · [Download](https://github.com/MartinRoskoEU/Pocket-TTS-Studio-Lite/releases/latest/download/PocketTTSStudioLite-Setup.exe) · [Changelog](CHANGELOG.md) · [Documentation](docs/README.md)
 
 ## Features
 
@@ -12,14 +12,15 @@ Import a reference recording, generate a local speech preview, and export a nati
 - Generate speech previews locally from your own text.
 - Export native voice profiles using the official Pocket TTS Rust runtime.
 - Install supported voice-cloning models and select a verified installed model.
-- Check for model and runtime updates from one Settings action; confirm each update
-  before downloading it.
+- Check application, model and runtime updates from Settings, with a release-page
+  link for application updates and confirmation before runtime or model downloads.
+- Repair a missing runtime executable using its verified official release.
 - Use offline voice cloning after installing the required model and runtime.
 - Install for the current Windows user, with a choice to retain or remove verified
   private data during uninstall.
 
-Version 0.2.1 fixes window minimization crashes and improves dialog cancellation
-and preview-generation error handling. See the [release notes](docs/releases/0.2.1-notes.md).
+Version 0.2.2 adds runtime repair and application release checks, and improves
+installer responsiveness and cancellation. See the [release notes](docs/releases/0.2.2-notes.md).
 
 ## Requirements
 
@@ -36,9 +37,8 @@ Feature Pack on Windows N may require administrator approval.
 
 ## Installation and use
 
-1. Download `PocketTTSStudioLite-0.2.1-win-x64-Setup.exe` from
-   [GitHub Releases](https://github.com/MartinRoskoEU/Pocket-TTS-Studio-Lite/releases)
-   and run it. The current installer is unsigned.
+1. Download [PocketTTSStudioLite-Setup.exe](https://github.com/MartinRoskoEU/Pocket-TTS-Studio-Lite/releases/latest/download/PocketTTSStudioLite-Setup.exe)
+   from the latest GitHub release and run it. The current installer is unsigned.
 2. In **Settings**, install a supported model. Complete Hugging Face authorization
    and review the upstream model conditions when required.
 3. Open **Voice Cloning**, select an installed model and import reference audio.

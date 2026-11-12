@@ -4,6 +4,28 @@ All notable changes to Pocket TTS Studio lite will be documented in this file.
 
 The changelog is maintained manually and updated for each release.
 
+## [0.2.2] - 2026-11-12
+
+### Added
+
+- Repair a missing runtime executable from its verified official release in Settings.
+- Check for newer application releases at startup and through Settings, with a
+  View release action.
+
+### Changed
+
+- Use the stable `PocketTTSStudioLite-Setup.exe` download name and matching checksum
+  filename for links to the latest GitHub release.
+
+### Fixed
+
+- Keep installer and uninstaller windows responsive during preparation and file
+  verification, and align the installer's Finish button.
+- Restore Cancel during file copying, clean up cancelled installation files and
+  restore backed-up original files when updating an existing installation.
+- Clean up verified preparation files and newly created empty directories after
+  cancellation or preparation failure, preserving existing data and recovery records.
+
 ## [0.2.1] - 2026-11-04
 
 ### Fixed

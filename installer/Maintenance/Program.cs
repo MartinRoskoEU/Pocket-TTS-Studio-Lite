@@ -2,7 +2,7 @@ using PocketTTSStudioLite.Maintenance;
 using System.Diagnostics;
 using System.Text;
 
-if (args.Length != 6 || args[0] is not ("prepare" or "commit" or "uninstall") || args[5] is not ("0" or "1"))
+if (args.Length != 6 || args[0] is not ("prepare" or "cancel-prepare" or "rollback-install" or "commit" or "uninstall") || args[5] is not ("0" or "1"))
 {
     Console.Error.WriteLine("This helper is invoked only by the Pocket TTS Studio lite installer.");
     return 2;
@@ -19,21 +19,38 @@ try
             !Path.TrimEndingDirectorySeparator(Path.GetFullPath(registered)).Equals(maintenance.Root, StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException("The current-user installation registration does not match this directory.");
     }
-    foreach (var process in Process.GetProcessesByName("PocketTTSStudioLite"))
+    if (args[0] is not ("cancel-prepare" or "rollback-install"))
     {
-        using (process)
+        foreach (var process in Process.GetProcessesByName("PocketTTSStudioLite"))
         {
-            string? path = process.MainModule?.FileName;
-            if (path is null || (args[0] == "uninstall" && args[5] == "1") || path.StartsWith(maintenance.Root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
-                throw new InvalidOperationException("Close Pocket TTS Studio lite before continuing.");
+            using (process)
+            {
+                string? path = process.MainModule?.FileName;
+                if (path is null || (args[0] == "uninstall" && args[5] == "1") || path.StartsWith(maintenance.Root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+                    throw new InvalidOperationException("Close Pocket TTS Studio lite before continuing.");
+            }
         }
     }
     bool complete = true;
-    if (args[0] == "prepare") await maintenance.PrepareAsync(args[3], package.Files);
-    if (args[0] == "commit") complete = await maintenance.CommitAsync(package, args[3]);
+    if (args[0] == "prepare") await maintenance.PrepareTrackedAsync(args[3], package.Files, args[4] + ".preparation.json", () =>
+    {
+        if (File.Exists(args[4] + ".cancel")) throw new OperationCanceledException("Installation preparation cancelled safely.");
+    });
+    if (args[0] == "cancel-prepare") await maintenance.CancelPreparationAsync(args[3], args[4] + ".preparation.json");
+    if (args[0] == "rollback-install") await maintenance.CancelPreparationAsync(args[3], args[4] + ".preparation.json", rollbackPayload: true, packageFiles: package.Files);
+    if (args[0] == "commit")
+    {
+        complete = await maintenance.CommitAsync(package, args[3]);
+        await maintenance.CompletePreparationAsync(args[4] + ".preparation.json");
+    }
     if (args[0] == "uninstall") await maintenance.UninstallAsync(args[3], args[5] == "1");
     File.WriteAllText(args[4], "[results]\r\nschema=1\r\ncomplete=" + (complete ? "1" : "0") + "\r\nlegacy_preserved=" + (maintenance.LegacyFilesPreserved ? "1" : "0") + "\r\n", Encoding.Unicode);
     return complete ? 0 : 3;
+}
+catch (OperationCanceledException)
+{
+    File.WriteAllText(args[4], "[results]\r\ncomplete=0\r\ncancelled=1\r\nmessage=Installation preparation cancelled safely.\r\n", Encoding.Unicode);
+    return 4;
 }
 catch (Exception exception)
 {

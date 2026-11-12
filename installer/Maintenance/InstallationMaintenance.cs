@@ -9,7 +9,7 @@ internal sealed record InstallationReceipt(int SchemaVersion, string AppId, stri
     OwnedFile[] Files, OwnedFile[] PendingObsolete);
 internal sealed record UpgradePlan(int SchemaVersion, string RootIdentity, string PackageHash, OwnedFile[] PreviousFiles);
 
-internal sealed class InstallationMaintenance(string appRoot)
+internal sealed partial class InstallationMaintenance(string appRoot)
 {
     internal const string ReceiptPath = "maintenance/installation.json", UpgradePath = "maintenance/upgrade-plan.json";
     internal string Root { get; } = ValidateRoot(appRoot);
@@ -63,15 +63,22 @@ internal sealed class InstallationMaintenance(string appRoot)
         foreach (var file in receipt.Files.Concat(receipt.PendingObsolete)) { MaintenanceFiles.Validate(file); _ = MaintenanceFiles.Resolve(Root, file.RelativePath); }
     }
 
-    internal async Task PrepareAsync(string packageHash, PackageFile[]? candidateFiles = null)
+    internal async Task PrepareAsync(string packageHash, PackageFile[]? candidateFiles = null, Action? checkCancellation = null)
     {
         if (candidateFiles is not null)
-            foreach (var file in candidateFiles) _ = await MaintenanceFiles.CaptureAsync(Root, file.Path);
+            foreach (var file in candidateFiles)
+            {
+                checkCancellation?.Invoke();
+                _ = await MaintenanceFiles.CaptureAsync(Root, file.Path);
+            }
         _ = await MaintenanceFiles.CaptureAsync(Root, "maintenance/package.json");
         if (File.Exists(MaintenanceFiles.Resolve(Root, "maintenance/uninstall-state.ini")) || File.Exists(MaintenanceFiles.Resolve(Root, "maintenance/uninstall-plan.json")))
             throw new InvalidOperationException("Finish the interrupted uninstall before reinstalling.");
-        Directory.CreateDirectory(Root);
+        bool rootCreated = CreatePreparationDirectory(Root);
         string identity = PocketTtsModelStore.DirectoryIdentity(Root, Root);
+        _preparation = new(1, MaintenanceFiles.AppId, Root, packageHash, identity, rootCreated,
+            null, false, null, null);
+        _preparation = _preparation with { PreviousReceipt = await MaintenanceFiles.CaptureAsync(Root, ReceiptPath) };
         if (File.Exists(MaintenanceFiles.Resolve(Root, UpgradePath)))
         {
             var pending = await MaintenanceFiles.ReadAsync<UpgradePlan>(Root, UpgradePath);
@@ -86,13 +93,23 @@ internal sealed class InstallationMaintenance(string appRoot)
             var receipt = await MaintenanceFiles.ReadAsync<InstallationReceipt>(Root, ReceiptPath); ValidateReceipt(receipt);
             foreach (var file in receipt.Files.Concat(receipt.PendingObsolete))
             {
+                checkCancellation?.Invoke();
                 var actual = await MaintenanceFiles.CaptureAsync(Root, file.RelativePath, file.Sha256);
                 if (actual is not null && actual.Identity != file.Identity) throw new InvalidDataException("An installed file was replaced. It was preserved.");
             }
             previous = receipt.Files.Concat(receipt.PendingObsolete).DistinctBy(file => file.RelativePath, StringComparer.OrdinalIgnoreCase).ToArray();
         }
         else LegacyFilesPreserved = Directory.EnumerateFileSystemEntries(Root).Any();
-        await MaintenanceFiles.WriteAsync(Root, UpgradePath, new UpgradePlan(1, identity, packageHash, previous));
+        checkCancellation?.Invoke();
+        string maintenanceDirectory = MaintenanceFiles.Resolve(Root, "maintenance");
+        bool maintenanceCreated = CreatePreparationDirectory(maintenanceDirectory);
+        _preparation = _preparation with
+        {
+            MaintenanceIdentity = PocketTtsModelStore.DirectoryIdentity(maintenanceDirectory, Root),
+            MaintenanceCreated = maintenanceCreated,
+        };
+        await MaintenanceFiles.WriteAsync(Root, UpgradePath, new UpgradePlan(1, identity, packageHash, previous), replace: false);
+        _preparation = _preparation with { Plan = await MaintenanceFiles.CaptureAsync(Root, UpgradePath) };
     }
 
     internal async Task<bool> CommitAsync(PackageManifest package, string packageHash)
